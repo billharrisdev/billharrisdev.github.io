@@ -1,1 +1,28 @@
-<html><head></head><body>Test</body></html>
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="color-scheme" content="light dark" />
+		<title>billharrisdev.github.io</title>
+	</head>
+	<body>
+			<script>
+				try {
+					const t = localStorage.getItem('theme');
+					if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+				} catch {}
+			</script>
+			<div id="app"></div>
+		<script type="module" src="/src/main.ts"></script>
+	</body>
+	<noscript>
+		This site requires JavaScript. See links:
+		<ul>
+			<li><a href="https://billharrisdev.github.io/visualizers">Visualizers</a></li>
+			<li><a href="https://billharrisdev.github.io/audio">Audio</a></li>
+			<li><a href="https://billharrisdev.github.io/browsergame">BrowserGame</a></li>
+		</ul>
+	</noscript>
+  
+</html>
