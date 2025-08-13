@@ -14,3 +14,5 @@ Dev
 Deploy
 
 Pushing to main triggers a GitHub Pages deploy via Actions.
+
+Note: If the site appears blank, ensure Settings → Pages → Source is set to "GitHub Actions" (not "Deploy from a branch").
