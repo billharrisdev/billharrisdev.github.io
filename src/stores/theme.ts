@@ -7,8 +7,8 @@ function getInitialTheme(): Theme {
     const saved = localStorage.getItem('theme') as Theme | null;
     if (saved === 'light' || saved === 'dark') return saved;
   } catch {}
-  const prefersDark = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  return prefersDark ? 'dark' as const : 'light' as const;
+  // Default to dark if no saved preference
+  return 'dark';
 }
 
 export const theme: Writable<Theme> = writable<Theme>(getInitialTheme());

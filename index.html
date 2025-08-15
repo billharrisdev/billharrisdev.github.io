@@ -10,7 +10,12 @@
 			<script>
 				try {
 					const t = localStorage.getItem('theme');
-					if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+					if (t === 'light' || t === 'dark') {
+						document.documentElement.dataset.theme = t;
+					} else {
+						// default to dark before app bundle loads to avoid flash
+						document.documentElement.dataset.theme = 'dark';
+					}
 				} catch {}
 			</script>
 			<div id="app"></div>
