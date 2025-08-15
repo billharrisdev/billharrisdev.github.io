@@ -13,6 +13,12 @@ Dev
 
 Deploy
 
-Pushing to main triggers a GitHub Pages deploy via Actions.
+Push to `main` (or run the workflow manually) to build & deploy via GitHub Pages Actions using an artifact. Build output in `dist/` is uploaded; no built files are committed back to the repo.
 
-Note: If the site appears blank, ensure Settings → Pages → Source is set to "GitHub Actions" (not "Deploy from a branch").
+If the site appears blank:
+1. Check Actions logs for build errors.
+2. Ensure Settings → Pages → Source = "GitHub Actions".
+3. Confirm `dist/index.html` existed in the build step.
+
+Local preview of production build:
+`npm run build && npx serve dist` (or `npm run preview`).
