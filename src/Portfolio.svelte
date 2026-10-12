@@ -2,6 +2,7 @@
   import { fly } from 'svelte/transition';
   import { onMount } from 'svelte';
   import { projects } from './lib/projects';
+  import biquadReference from '../docs/digital-biquad-filter.webp';
 
   const categories = ['Showcase', 'Corporate'] as const;
   let selected = projects.find(project => project.id === 'daw-gnu')!;
@@ -114,7 +115,15 @@
                 <div class="technical">
                   <p>Built in Rust targetting WebAssembly, we use hardware-accelerated encoding and decoding through WebCodecs.</p>
                   <p>The audio chain implements WebGPU biquad filters as shaders for hardware-accelerated effects processing and highly chainable design for minimal latency.</p>
-                  <p>A <a href="https://en.wikipedia.org/wiki/Digital_biquad_filter" target="_blank" rel="noopener noreferrer">biquad filter</a> is a second-order recursive linear filter with two poles and two zeros. Its Z-domain transfer function is a ratio of two quadratic polynomials—a fundamental building block in digital signal processing.</p>
+                  <figure class="biquad-reference">
+                    <a class="reference-image" href="https://en.wikipedia.org/wiki/Digital_biquad_filter" target="_blank" rel="noopener noreferrer" aria-label="Read Digital biquad filter on Wikipedia (new tab)">
+                      <img src={biquadReference} alt="Wikipedia excerpt explaining digital biquad filters, their transfer-function equations, coefficient normalization, and stability." loading="lazy" decoding="async" />
+                    </a>
+                    <figcaption>
+                      <a href="https://en.wikipedia.org/wiki/Digital_biquad_filter" target="_blank" rel="noopener noreferrer">Digital biquad filter — Wikipedia contributors</a>
+                      · <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>
+                    </figcaption>
+                  </figure>
                 </div>
               </details>
             {/if}
@@ -172,6 +181,10 @@
   summary span { float: right; }
   details[open] summary span { transform: rotate(45deg); }
   .technical p { margin: 0 0 1rem; }
+  .biquad-reference { margin: 1.25rem 0; }
+  .reference-image { display: block; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: #fff; }
+  .reference-image img { display: block; width: 100%; height: auto; }
+  .biquad-reference figcaption { display: block; line-height: 1.7; }
   .visit { display: inline-flex; gap: 1.5rem; align-items: center; margin-top: 0.75rem; padding: 0.6rem 0; font-size: 0.8rem; }
   .empty-gallery { min-height: 280px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; text-align: center; border: 1px solid var(--border); border-radius: 14px; background: radial-gradient(ellipse at top right, color-mix(in oklab, var(--accent) 12%, var(--bg)), var(--bg)); }
   .empty-mark { font-size: clamp(1.2rem, 3vw, 2.3rem); letter-spacing: 0.15em; color: var(--accent); opacity: 0.5; }
