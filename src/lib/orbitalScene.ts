@@ -49,12 +49,40 @@ function lettering(): Stroke[] {
   });
 }
 
-function makeArm(scene: THREE.Scene, x: number, color: number) {
+function glowTexture() {
+  const size = 64;
+  const pixels = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+    const radius = Math.hypot((x + 0.5) / size * 2 - 1, (y + 0.5) / size * 2 - 1);
+    const offset = (y * size + x) * 4;
+    pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = 255;
+    pixels[offset + 3] = Math.round(255 * Math.exp(-radius * radius * 5) * Math.max(0, 1 - radius));
+  }
+  const texture = new THREE.DataTexture(pixels, size, size);
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function makeArm(scene: THREE.Scene, x: number, color: number, glow: THREE.Texture) {
   const root = new THREE.Group();
   root.position.set(x, -2.5, 0.35);
   scene.add(root);
   const metal = new THREE.MeshStandardMaterial({ color: 0x172039, metalness: 0.8, roughness: 0.3 });
   const neon = new THREE.MeshBasicMaterial({ color });
+  // Additive bloom disappears against white. These softly tinted halos use
+  // normal alpha blending so the lights remain visible in a bright studio.
+  const haloMaterial = new THREE.SpriteMaterial({ map: glow, color, transparent: true,
+    opacity: 0.5, depthWrite: false, toneMapped: false, fog: false });
+  const halos: THREE.Sprite[] = [];
+  function addHalo(parent: THREE.Object3D, size: number) {
+    const halo = new THREE.Sprite(haloMaterial);
+    halo.scale.set(size, size, 1);
+    halo.visible = false;
+    parent.add(halo);
+    halos.push(halo);
+  }
   const base = new THREE.Mesh(new THREE.CylinderGeometry(0.48, 0.65, 0.3, 24), metal);
   root.add(base);
   const joints: THREE.Group[] = [];
@@ -69,6 +97,7 @@ function makeArm(scene: THREE.Scene, x: number, color: number) {
     parent.add(joint);
     joints.push(joint);
     joint.add(new THREE.Mesh(new THREE.SphereGeometry(i < 3 ? 0.19 : 0.12, 16, 12), neon));
+    addHalo(joint, i < 3 ? 1.6 : 1.1);
     const link = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, length, 12), metal);
     link.rotation.z = i === 0 ? 0 : -Math.PI / 2;
     if (i === 0) link.position.y = length / 2;
@@ -88,6 +117,9 @@ function makeArm(scene: THREE.Scene, x: number, color: number) {
   joints[2].rotation.z = x < 0 ? -1.2 : 1.2;
   const tip = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 8), neon);
   parent.add(tip);
+  addHalo(parent, 1.4);
+  const penLight = new THREE.PointLight(color, 0, 4);
+  parent.add(penLight);
   const origin = new THREE.Vector3(), end = new THREE.Vector3();
   const a = new THREE.Vector3(), b = new THREE.Vector3(), axis = new THREE.Vector3(), cross = new THREE.Vector3();
   const rotation = new THREE.Quaternion();
@@ -100,7 +132,11 @@ function makeArm(scene: THREE.Scene, x: number, color: number) {
     },
     setTheme(dark: boolean, color: number) {
       metal.color.setHex(dark ? 0x172039 : 0xa6b4cc);
-      neon.color.setHex(color);
+      neon.color.setHex(dark ? color : x < 0 ? 0x26e6ff : 0xcd82ff).multiplyScalar(dark ? 1 : 3.5);
+      haloMaterial.color.setHex(color);
+      halos.forEach(halo => halo.visible = !dark);
+      penLight.color.setHex(color);
+      penLight.intensity = dark ? 0 : 15;
       metal.metalness = dark ? 0.8 : 0.45;
     },
     follow(target: THREE.Vector3, time: number) {
@@ -155,7 +191,8 @@ export function createOrbitalScene(canvas: HTMLCanvasElement) {
   grid.position.y = -2.7; scene.add(grid);
   const strokes = lettering();
   const palette = [0x63f5ff, 0xd78aff];
-  const arms = [makeArm(scene, -5.5, palette[0]), makeArm(scene, 5.5, palette[1])];
+  const glow = glowTexture();
+  const arms = [makeArm(scene, -5.5, palette[0], glow), makeArm(scene, 5.5, palette[1], glow)];
   const groups = [strokes.filter(s => s.points[0].x < 0), strokes.filter(s => s.points[0].x >= 0)];
   const lines = groups.map((group, index) => group.map(stroke => {
     const geometry = new THREE.BufferGeometry().setFromPoints(stroke.points);
@@ -186,7 +223,7 @@ export function createOrbitalScene(canvas: HTMLCanvasElement) {
     light.color.setHex(dark ? 0x69eaff : 0xc7e9ff);
     stars.material.color.setHex(dark ? 0xaecbff : 0x526c92);
     stars.material.size = dark ? 0.045 : 0.065;
-    bloom.strength = dark ? 0.85 : 0.12;
+    bloom.strength = dark ? 0.85 : 0.55;
     bloom.threshold = dark ? 0.35 : 1.1;
     scene.remove(grid);
     grid.geometry.dispose();
@@ -199,7 +236,9 @@ export function createOrbitalScene(canvas: HTMLCanvasElement) {
     palette[1] = dark ? 0xd78aff : 0x7c3ac9;
     arms.forEach((arm, index) => arm.setTheme(dark, palette[index]));
     lines.forEach((group, index) => group.forEach(line =>
-      line.material.color.setHex(palette[index]).multiplyScalar(dark ? 2.5 : 1)));
+      // Keep saturated cores, but raise their HDR luminance above the light
+      // studio's bloom threshold instead of turning bloom on for the backdrop.
+      line.material.color.setHex(palette[index]).multiplyScalar(dark ? 2.5 : index === 0 ? 8 : 11)));
     epicycles.forEach((group, index) => group.forEach(circle => {
       circle.material.color.setHex(palette[index]);
       circle.material.opacity = dark ? 0.18 : 0.35;
@@ -275,13 +314,13 @@ export function createOrbitalScene(canvas: HTMLCanvasElement) {
       disposed = true; cancelAnimationFrame(frame); observer.disconnect();
       document.removeEventListener('visibilitychange', visibility);
       scene.traverse(object => {
-        if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Points) {
-          object.geometry.dispose();
+        if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Points || object instanceof THREE.Sprite) {
+          if (!(object instanceof THREE.Sprite)) object.geometry.dispose();
           const materials = Array.isArray(object.material) ? object.material : [object.material];
           materials.forEach(material => material.dispose());
         }
       });
-      bloom.dispose(); composer.dispose(); renderer.dispose();
+      glow.dispose(); bloom.dispose(); composer.dispose(); renderer.dispose();
     }
   };
 }
