@@ -110,10 +110,10 @@
             {/if}
             {#if selected.id === 'daw-gnu'}
               <details>
-                <summary>Under the hood <span aria-hidden="true">+</span></summary>
+                <summary>Under the hood technical details (WASM and biquad filters oh my)<span aria-hidden="true">+</span></summary>
                 <div class="technical">
-                  <p>Built in Rust with WebAssembly, with hardware-accelerated encoding and decoding through WebCodecs.</p>
-                  <p>The audio chain uses WebGPU biquad filters and shaders for hardware-accelerated effects processing and recursive chaining designed for minimal latency.</p>
+                  <p>Built in Rust targetting WebAssembly, we use hardware-accelerated encoding and decoding through WebCodecs.</p>
+                  <p>The audio chain implements WebGPU biquad filters as shaders for hardware-accelerated effects processing and highly chainable design for minimal latency.</p>
                   <p>A <a href="https://en.wikipedia.org/wiki/Digital_biquad_filter" target="_blank" rel="noopener noreferrer">biquad filter</a> is a second-order recursive linear filter with two poles and two zeros. Its Z-domain transfer function is a ratio of two quadratic polynomials—a fundamental building block in digital signal processing.</p>
                 </div>
               </details>

@@ -34,7 +34,7 @@ Orbital signature
 Portfolio galleries
 
 - `src/Portfolio.svelte` displays the Showcase and Corporate project lists. Hover, keyboard focus, or a click/tap selects a project; screenshots have thumbnail navigation and full-size links. On mobile, tapping a project scrolls to its gallery.
-- Project descriptions, links, status badges, and screenshot prefix aliases live in `src/lib/projects.ts`. DAW-GNU is marked in development and has no public site link. Corporate contribution text is only included where supplied.
+- Project descriptions, links, status badges, and screenshot prefix aliases live in `src/lib/projects.ts`. DAW-GNU is marked in development and NetMap is screenshots-only; neither has a public site link. Corporate contribution text is only included where supplied.
 - Add screenshots to `docs/` as `[SITE]-[SCREEN]-[EXTRA].webp`. Matching is case-insensitive for site prefixes; multi-part screen names are preserved. WebP assets are automatically included by Vite on the next build. Source PNG/JPG/PSD files are not included in the gallery.
-- Available prefixes include `DAW`, `GreatCall`, `visualizers`, `PersonalCreations` / `Personal-Creations`, `ProFlowers`, and `FrequencyFrontier` / `Frequency-Frontier` / `BrowserGame`. Add aliases and friendly captions in `src/lib/projects.ts` as needed. The unreleased Audio project is omitted from the portfolio.
+- Available prefixes include `DAW`, `NetMap`, `GreatCall`, `visualizers`, `PersonalCreations` / `Personal-Creations`, `ProFlowers`, and `FrequencyFrontier` / `Frequency-Frontier` / `BrowserGame`. Add aliases and friendly captions in `src/lib/projects.ts` as needed. The unreleased Audio project is omitted from the portfolio.
 - Projects without screenshots retain their entry with a pending-gallery message. The revealed portfolio uses normal document scrolling so galleries and expanded technical descriptions aren't clipped to the animation viewport.

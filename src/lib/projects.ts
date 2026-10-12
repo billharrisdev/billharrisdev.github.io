@@ -22,7 +22,7 @@ const entries: Omit<Project, 'screenshots'>[] = [
   {
     id: 'frequency-frontier', name: 'Frequency Frontier - Drumming / Beat game',
     category: 'Showcase', subtitle: 'Rhythm, right in your browser.',
-    description: 'A browser-based drumming and beat game. Explore the playable project while its screenshot gallery is being prepared.',
+    description: 'A browser-based drumming and beat game. Explore the screenshot gallery, including the triplet stage, or jump into the playable project.',
     prefixes: ['FrequencyFrontier', 'Frequency-Frontier', 'BrowserGame'],
     href: 'https://billharrisdev.github.io/browsergame'
   },
@@ -42,6 +42,11 @@ const entries: Omit<Project, 'screenshots'>[] = [
       'Automatic pitch correction to the closest pitch in a selected scale or mode.',
       'Microphone mixing and video muxing: an OBS-like recording workflow, without built-in streaming uploads.'
     ]
+  },
+  {
+    id: 'netmap', name: 'NetMap', category: 'Showcase', status: 'Screenshots only',
+    subtitle: 'Find your network’s weak spots.', prefixes: ['NetMap'],
+    description: 'NetMap is an open-ended network discovery and infosec tool. Want to know where your weak spots are? You’ve come to the right place. Built with Rust™.'
   },
   {
     id: 'greatcall', name: 'GreatCall', category: 'Corporate', status: 'Corporate archive',
@@ -66,7 +71,8 @@ const captions: Record<string, string> = {
   'audiograph': 'Audio graph', 'effects-pitch-shift': 'Effects · pitch shift',
   'inputs': 'Audio inputs', 'output-files': 'Output files', 'phones': 'Phones',
   'activation': 'Activation', '5star-network': '5Star network', 'search': 'Search algorithms',
-  'giftoptions': 'Gift options'
+  'giftoptions': 'Gift options', 'triplet-stage': 'Triplet stage',
+  'web-discovery-printer': 'Web discovery · printer'
 };
 
 export const projects: Project[] = entries.map(project => ({
