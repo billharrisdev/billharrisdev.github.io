@@ -82,13 +82,10 @@
   });
 </script>
 
-<section id="top" class="orbital" class:static-view={reducedMotion || fallback} bind:this={section}
+<div class="experience" class:static-view={reducedMotion || fallback}
   style={`--flight: ${progress}; --scene-opacity: ${1 - Math.max(0, Math.min(1, (progress - 0.62) / 0.34))}; --ui-opacity: ${1 - Math.min(1, progress / 0.4)}; --home-opacity: ${Math.max(0, Math.min(1, (progress - 0.58) / 0.34))};`}>
-  <div id="home" class="home-anchor" tabindex="-1" aria-label="Projects"></div>
+<section id="top" class="orbital" bind:this={section}>
   <div class="stage">
-    <div class="home" inert={progress < 0.92 && !reducedMotion && !fallback}>
-      <slot />
-    </div>
     <div class="studio" aria-labelledby="orbital-title">
     <canvas bind:this={canvas} class:visible={ready && !fallback && !reducedMotion} aria-hidden="true"></canvas>
     <div class="vignette" aria-hidden="true"></div>
@@ -100,13 +97,18 @@
     </div>
   </div>
 </section>
+<div id="home" class="home" tabindex="-1" aria-label="Projects"
+  inert={progress < 0.92 && !reducedMotion && !fallback}>
+  <slot />
+</div>
+</div>
 
 <style>
-  .orbital { --stage-height: max(100svh, 28rem); height: calc(140svh + var(--stage-height)); position: relative; color: var(--text); background: var(--bg); }
-  .home-anchor { position: absolute; top: calc(100% - var(--stage-height)); left: 0; width: 1px; height: 1px; }
-  .home-anchor:focus { outline: none; }
+  .experience { --stage-height: max(100svh, 28rem); color: var(--text); background: var(--bg); }
+  .orbital { height: calc(140svh + var(--stage-height)); position: relative; z-index: 1; pointer-events: none; }
   .stage { height: var(--stage-height); position: sticky; top: 0; overflow: hidden; isolation: isolate; }
-  .home { position: absolute; inset: 0; opacity: var(--home-opacity); transform: scale(calc(0.94 + var(--home-opacity) * 0.06)); transform-origin: center; }
+  .home { position: relative; z-index: 0; margin-top: calc(-1 * var(--stage-height)); opacity: var(--home-opacity); transform: scale(calc(0.94 + var(--home-opacity) * 0.06)); transform-origin: center top; }
+  .home:focus { outline: none; }
   .studio { position: absolute; inset: 0; opacity: var(--scene-opacity); background: radial-gradient(ellipse at 50% 60%, var(--surface) 0%, var(--bg) 65%); pointer-events: none; }
   canvas { width: 100%; height: 100%; display: block; opacity: 0; transition: opacity 900ms ease; }
   canvas.visible { opacity: 1; }
@@ -119,11 +121,10 @@
   .explore { color: var(--text); text-decoration: none; display: inline-flex; gap: 0.8rem; align-items: center; pointer-events: auto; padding: 0.65rem 0; }
   .explore:hover { color: var(--accent); }
   .explore:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
-  .static-view { height: auto; }
-  .static-view .stage { height: auto; position: relative; display: flex; flex-direction: column; }
-  .static-view .studio { position: relative; height: 100svh; order: 0; opacity: 1; }
-  .static-view .home { position: relative; order: 1; opacity: 1; transform: none; }
-  .static-view .home-anchor { top: 100svh; }
+  .static-view .orbital { height: auto; }
+  .static-view .stage { height: auto; position: relative; }
+  .static-view .studio { position: relative; height: 100svh; opacity: 1; }
+  .static-view .home { margin-top: 0; opacity: 1; transform: none; }
   .static-view .caption { opacity: 1; }
   .static-view .signature { transform: translate(-50%, -50%); transition: none; }
   @media (prefers-reduced-motion: reduce) { canvas { transition: none; } }

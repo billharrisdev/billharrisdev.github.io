@@ -1,21 +1,16 @@
 <script lang="ts">
   import { theme, toggleTheme } from './stores/theme';
   import OrbitalReveal from './OrbitalReveal.svelte';
+  import Portfolio from './Portfolio.svelte';
 
   let orbitProgress = 0;
   let orbital: OrbitalReveal;
 
-  type Link = { label: string; href: string };
-  const links: Link[] = [
-    { label: 'Frequency Frontier - Drumming / Beat game', href: 'https://billharrisdev.github.io/browsergame' },
-    { label: 'Visualizers', href: 'https://billharrisdev.github.io/visualizers' },
-    { label: 'Audio', href: 'https://billharrisdev.github.io/audio' }
-  ];
 </script>
 
 <svelte:head>
   <title>billharrisdev</title>
-  <meta name="description" content="Explore Frequency Frontier, a drumming / beat game, plus Visualizers and Audio." />
+  <meta name="description" content="Explore showcase projects and corporate work, including DAW-GNU, Frequency Frontier, Visualizers, and GreatCall." />
   <meta name="theme-color" content="#0e1426" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 </svelte:head>
@@ -34,29 +29,10 @@
   </header>
 
   <OrbitalReveal bind:this={orbital} onProgress={(value) => orbitProgress = value}>
-  <main class="page" aria-labelledby="links-title">
-    <h2 class="intro" id="links-title">Quick links</h2>
-    <ul class="links">
-      {#each links as link}
-        <li>
-          <a class="card" href={link.href} rel="noopener noreferrer">
-            <span class="label">{link.label}</span>
-            <span class="arrow" aria-hidden>→</span>
-          </a>
-        </li>
-      {/each}
-    </ul>
-  </main>
+    <Portfolio />
   </OrbitalReveal>
 
 <style>
-  .page {
-    min-height: 100svh;
-    display: grid;
-    place-content: center;
-    color: var(--text);
-    background: var(--bg);
-  }
   .header { 
     position: fixed;
     top: 0;
@@ -93,17 +69,5 @@
   .theme-toggle:hover { filter: brightness(1.05); }
   .theme-toggle .label { font-size: 0.85rem; }
 
-  main { padding: 6rem 1.25rem 3rem; }
-  .intro { margin: 0 0 1.5rem; font-size: clamp(1.6rem, 4vw, 2.4rem); font-weight: 500; letter-spacing: -0.04em; }
-  .links { width: min(560px, calc(100vw - 2.5rem)); list-style: none; padding: 0; margin: 0; display: grid; gap: 0.75rem; }
-  .card {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 1rem 1.25rem; border: 1px solid var(--border); border-radius: 12px;
-    text-decoration: none; color: var(--text); background: var(--surface);
-    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
-  }
-  .card:hover { transform: translateY(-1px); border-color: var(--accent); }
-  .card .label { font-weight: 600; }
-  .card .arrow { opacity: 0.6; }
 
 </style>
