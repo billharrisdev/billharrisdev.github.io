@@ -1,5 +1,5 @@
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
   --bg: #ffffff;
   --surface: #ffffff;
   --text: #0f172a;
@@ -7,9 +7,13 @@
   --accent: #2563eb;
   --button-bg: color-mix(in oklab, var(--accent) 8%, var(--surface));
   --button-fg: var(--text);
+  --scrollbar-thumb: #94a3b8;
+  --scrollbar-thumb-hover: #64748b;
+  scrollbar-color: var(--scrollbar-thumb) var(--bg);
 }
 
 :root[data-theme='dark'] {
+  color-scheme: dark;
   --bg: #0b1020;
   --surface: #0e1426;
   --text: #e5e7eb;
@@ -17,7 +21,15 @@
   --accent: #60a5fa;
   --button-bg: color-mix(in oklab, var(--accent) 12%, var(--surface));
   --button-fg: var(--text);
+  --scrollbar-thumb: #475569;
+  --scrollbar-thumb-hover: #64748b;
 }
+
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border: 3px solid var(--bg); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+::-webkit-scrollbar-corner { background: var(--bg); }
 
 * { box-sizing: border-box; }
 html, body, #app { height: 100%; }
