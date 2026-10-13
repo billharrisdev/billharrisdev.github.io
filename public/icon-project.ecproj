@@ -1,0 +1,84 @@
+{
+  "savedBy": "0.6.0",
+  "schema": 1,
+  "settings": {
+    "bit_depth": "Bpc8",
+    "linearize": false,
+    "working_space": null,
+    "blend_linear": false,
+    "time_display": "Timecode",
+    "frame_start": 0,
+    "audio_sample_rate": 48000,
+    "gpu_acceleration": true,
+    "color_engine": "Adobe",
+    "hdr": "Clip",
+    "output_space": null
+  },
+  "items": {
+    "1": {
+      "id": 1,
+      "name": "favicon-animated.gif",
+      "label": "Lavender",
+      "comment": "",
+      "parent": null,
+      "kind": {
+        "type": "Footage",
+        "path": "D:\\code\\billharrisdev.github.io\\public\\favicon-animated.gif",
+        "kind": "Still",
+        "width": 32,
+        "height": 32,
+        "pixel_aspect": 1.0,
+        "frame_rate": {
+          "num": 30,
+          "den": 1
+        },
+        "native_rate": null,
+        "duration": 0,
+        "has_video": true,
+        "has_audio": false,
+        "alpha": "Straight",
+        "premul_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "loop_count": 1,
+        "codec": "GIF",
+        "missing": false
+      }
+    },
+    "2": {
+      "id": 2,
+      "name": "favicon-animated.gif",
+      "label": "Lavender",
+      "comment": "",
+      "parent": null,
+      "kind": {
+        "type": "Footage",
+        "path": "D:\\code\\billharrisdev.github.io\\public\\favicon-animated.gif",
+        "kind": "Still",
+        "width": 32,
+        "height": 32,
+        "pixel_aspect": 1.0,
+        "frame_rate": {
+          "num": 30,
+          "den": 1
+        },
+        "native_rate": null,
+        "duration": 0,
+        "has_video": true,
+        "has_audio": false,
+        "alpha": "Straight",
+        "premul_color": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "loop_count": 1,
+        "codec": "GIF",
+        "missing": false
+      }
+    }
+  },
+  "next_id": 3
+}
