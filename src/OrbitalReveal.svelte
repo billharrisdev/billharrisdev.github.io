@@ -167,7 +167,7 @@
   </div>
 </section>
 <div id="home" class="home" bind:this={home} tabindex="-1" aria-label="Projects"
-  inert={progress < 0.92 && !reducedMotion && !fallback}>
+  inert={progress <= 0.58 && !reducedMotion && !fallback}>
   <slot />
 </div>
 </div>

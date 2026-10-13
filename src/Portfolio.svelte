@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { projects } from './lib/projects';
+  import { authorName, authorEmail } from './lib/structuredData';
   import ProjectGallery from './ProjectGallery.svelte';
 
   const categories = ['Showcase', 'Corporate'] as const;
@@ -95,6 +96,10 @@
       {/each}
     </div>
   </div>
+  <footer class="author-contact">
+    <span>{authorName}</span>
+    <a href={`mailto:${authorEmail}`}>{authorEmail}</a>
+  </footer>
 </main>
 
 <style>
@@ -113,6 +118,10 @@
   .project-section { scroll-margin-top: 6rem; }
   .project-section + .project-section { margin-top: 4rem; padding-top: 4rem; border-top: 1px solid var(--border); }
   .project-section:focus { outline: none; }
+  .author-contact { max-width: 1320px; margin: 3rem auto 0; padding-top: 1.5rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem; font-size: 0.8rem; }
+  .author-contact a { color: var(--accent); text-decoration: none; }
+  .author-contact a:hover { text-decoration: underline; }
+  .author-contact a:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
   button:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
   @media (max-width: 760px) {
     .workspace { grid-template-columns: minmax(0, 1fr); }

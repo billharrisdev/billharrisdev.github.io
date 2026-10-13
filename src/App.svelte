@@ -5,6 +5,7 @@
   import OrbitalReveal from './OrbitalReveal.svelte';
   import Portfolio from './Portfolio.svelte';
   import { projects } from './lib/projects';
+  import { siteDescription } from './lib/structuredData';
 
   let orbitProgress = 0;
   let orbital: OrbitalReveal;
@@ -15,7 +16,6 @@
   let projectsToggle: HTMLButtonElement;
   const categories = ['Showcase', 'Corporate'] as const;
   onMount(animateFavicon);
-  $: selectedProject = projects.find(project => project.id === selectedId)!;
 
   function dismissProjects(event: MouseEvent) {
     if (projectsOpen && !projectsMenu.contains(event.target as Node)) projectsOpen = false;
@@ -42,7 +42,7 @@
 
 <svelte:head>
   <title>billharrisdev</title>
-  <meta name="description" content="Explore showcase projects and corporate work, including DAW-GNU, Frequency Frontier, Visualizers, and GreatCall." />
+  <meta name="description" content={siteDescription} />
   <meta name="theme-color" content="#0e1426" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
 </svelte:head>
@@ -61,8 +61,7 @@
     <div class="projects-menu" bind:this={projectsMenu} on:focusout={handleMenuFocusout}>
       <button class="projects-link" bind:this={projectsToggle} aria-expanded={projectsOpen}
         aria-controls="projects-dropdown" on:click={() => projectsOpen = !projectsOpen}>
-        <span class="desktop-projects-label">Projects</span>
-        <span class="mobile-projects-label">{selectedProject.name}</span>
+        <span>Projects</span>
         <span aria-hidden="true">{projectsOpen ? '▴' : '▾'}</span>
       </button>
       <div class="projects-dropdown" id="projects-dropdown" hidden={!projectsOpen}>
@@ -112,7 +111,6 @@
   nav { display: flex; align-items: center; gap: 1.25rem; }
   .projects-menu { position: relative; min-width: 0; }
   .projects-link { display: flex; align-items: center; gap: 0.5rem; max-width: 100%; color: inherit; background: transparent; border: 0; padding: 0.5rem 0; font: inherit; font-size: 0.85rem; cursor: pointer; }
-  .mobile-projects-label { display: none; }
   .projects-dropdown { position: absolute; top: calc(100% + 0.75rem); right: 0; width: min(340px, calc(100vw - 2.5rem)); max-height: calc(100svh - 6rem); overflow-y: auto; padding: 1rem; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 12px 32px rgb(0 0 0 / 20%); }
   .projects-dropdown section + section { margin-top: 1rem; }
   .projects-dropdown h2 { margin: 0 0 0.5rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.16em; opacity: 0.65; }
@@ -140,8 +138,6 @@
     .header { gap: 1rem; }
     h1 { flex-shrink: 0; }
     nav { min-width: 0; gap: 0.75rem; }
-    .desktop-projects-label { display: none; }
-    .mobile-projects-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .projects-dropdown { position: fixed; top: 4.5rem; right: 1.25rem; }
     .theme-toggle { flex-shrink: 0; }
     .theme-toggle .label { display: none; }
