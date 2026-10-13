@@ -83,6 +83,8 @@
     let loading = false;
     let scrollFrame = 0;
     let loadTimer: ReturnType<typeof setTimeout>;
+    let idleLoad: number | undefined;
+    let loadScheduled = false;
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => {
       scrollFrame = 0;
@@ -97,18 +99,23 @@
       onProgress(progress);
       scene?.setReveal(progress);
       scene?.setActive(!reducedMotion && !fallback && progress < 0.98 && rect.bottom > 0);
+      if (loadScheduled && !scene && rect.top < window.innerHeight && rect.bottom > 0) scheduleLoad();
       if (reducedMotion || fallback) {
         if (home.getBoundingClientRect().top <= 0) void completeReveal();
       } else if (progress >= 0.98) settleReveal();
     };
     const queueUpdate = () => { if (!scrollFrame) scrollFrame = requestAnimationFrame(update); };
     const load = async () => {
-      if (destroyed || media.matches || scene || loading || collapsed) return;
+      if (destroyed || media.matches || scene || loading || collapsed || fallback) return;
+      const rect = section.getBoundingClientRect();
+      if (rect.top >= window.innerHeight || rect.bottom <= 0) return;
       loading = true;
       try {
         // The chunk contains the font too: no third-party runtime asset requests.
         const { createOrbitalScene } = await import('./lib/orbitalScene');
         if (destroyed || media.matches || collapsed) return;
+        const currentRect = section.getBoundingClientRect();
+        if (currentRect.top >= window.innerHeight || currentRect.bottom <= 0) return;
         scene = createOrbitalScene(canvas);
         scene.setTheme($theme);
         scene.setPaused(paused);
@@ -123,16 +130,31 @@
         loading = false;
       }
     };
-    loadScene = () => { void load(); };
+    const scheduleLoad = () => {
+      if (destroyed || media.matches || scene || loading || collapsed || fallback || idleLoad !== undefined) return;
+      if ('requestIdleCallback' in window) {
+        idleLoad = window.requestIdleCallback(() => {
+          idleLoad = undefined;
+          void load();
+        }, { timeout: 2000 });
+      } else {
+        void load();
+      }
+    };
+    loadScene = () => { if (loadScheduled) scheduleLoad(); };
     const motionChange = () => {
       reducedMotion = media.matches;
       if (reducedMotion) scene?.setActive(false);
-      else if (!scene) void load();
+      else if (!scene && loadScheduled) scheduleLoad();
       update();
     };
     reducedMotion = media.matches;
-    // Yield the initial render, then download and initialize in the background.
-    loadTimer = setTimeout(() => void load(), 350);
+    // Keep the static hero's initial render clear of the animation download/work.
+    // Idle scheduling postpones startup; it does not split synchronous scene work.
+    loadTimer = setTimeout(() => {
+      loadScheduled = true;
+      scheduleLoad();
+    }, 2000);
     media.addEventListener('change', motionChange);
     window.addEventListener('scroll', queueUpdate, { passive: true });
     window.addEventListener('resize', queueUpdate);
@@ -153,6 +175,7 @@
       revision++;
       cancelAnimationFrame(settleFrame);
       clearTimeout(loadTimer); cancelAnimationFrame(scrollFrame);
+      if (idleLoad !== undefined) window.cancelIdleCallback(idleLoad);
       media.removeEventListener('change', motionChange);
       window.removeEventListener('scroll', queueUpdate);
       window.removeEventListener('resize', queueUpdate);

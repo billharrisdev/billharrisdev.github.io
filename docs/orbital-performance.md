@@ -14,6 +14,14 @@ solver, and per-frame calculations are restored in `src/lib/orbitalScene.ts`.
 Scene construction is synchronous again after the existing lazy module import;
 there is no separate lettering download or shader-preparation wait.
 
+The lazy scene import waits two seconds after mounting, then starts during browser
+idle time (with a two-second idle timeout). Browsers without idle callbacks start
+after the initial delay. The static signature remains visible until the scene is
+ready. Offscreen or collapsed intros do not start the download; scrolling back
+into view can schedule it again. Reduced motion continues to skip loading.
+This reduces initial network/CPU competition but does not split synchronous scene
+construction or guarantee lower LCP or Total Blocking Time.
+
 The lettering build script, binary dependency, optimized solver helpers, and
 optimization-specific tests were removed. Responsive-image generation and the
 accessibility features above remain. Rendering quality and animation timing are
