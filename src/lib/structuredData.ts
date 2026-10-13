@@ -32,7 +32,7 @@ export function createStructuredData(projects: Project[]) {
         email: authorEmail,
         sameAs: [
           'https://github.com/billharrisdev',
-          'https://www.linkedin.com/in/william-harris-343a9042',
+          'http://www.linkedin.com/in/bill-harris-dev',
         ],
       },
       {
