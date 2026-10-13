@@ -49,6 +49,11 @@
 
 <svelte:window on:click={dismissProjects} on:keydown={handleKeydown} />
 
+<a class="skip-link" href={`#project-${projects[0].id}`} on:click={(event) => {
+  event.preventDefault();
+  void chooseProject(projects[0].id);
+}}>Skip to projects</a>
+
   <header class="header" class:over-scene={orbitProgress < 0.9}>
     <h1><a class="brand" href="#top" on:click={(event) => {
       if (!event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) {
@@ -85,11 +90,15 @@
     </nav>
   </header>
 
-  <OrbitalReveal bind:this={orbital} onProgress={(value) => orbitProgress = value}>
-    <Portfolio bind:this={portfolio} bind:selectedId />
-  </OrbitalReveal>
+  <main aria-label="Bill Harris portfolio">
+    <OrbitalReveal bind:this={orbital} onProgress={(value) => orbitProgress = value}>
+      <Portfolio bind:this={portfolio} bind:selectedId />
+    </OrbitalReveal>
+  </main>
 
 <style>
+  .skip-link { position: fixed; top: 0.5rem; left: 1.25rem; z-index: 20; transform: translateY(-200%); padding: 0.75rem 1rem; color: var(--text); background: var(--bg); border: 2px solid var(--accent); border-radius: 6px; text-decoration: none; }
+  .skip-link:focus { transform: none; }
   .header { 
     position: fixed;
     top: 0;

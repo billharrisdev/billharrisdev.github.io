@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "predev": "npm run images",
+    "predev": "npm run images && npm run lettering",
     "images": "node scripts/generate-responsive-images.mjs",
-    "prebuild": "npm run images",
+    "lettering": "node scripts/generate-orbital-lettering.mjs",
+    "prebuild": "npm run images && npm run lettering",
     "build": "vite build",
     "test": "npm run build && node --test tests/*.test.mjs",
     "preview": "vite preview --port 5173"

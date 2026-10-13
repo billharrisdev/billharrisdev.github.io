@@ -16,9 +16,12 @@
   let ready = false;
   let fallback = false;
   let reducedMotion = false;
-  let scene: ReturnType<typeof createOrbitalScene> | undefined;
+  let scene: Awaited<ReturnType<typeof createOrbitalScene>> | undefined;
+  let paused = false;
+  let loadScene = () => {};
 
   $: scene?.setTheme($theme);
+  $: scene?.setPaused(paused);
 
   export async function reset() {
     const current = ++revision;
@@ -33,6 +36,7 @@
     if (current !== revision) return;
     window.scrollTo({ top: 0, behavior: 'instant' });
     scene?.setActive(!reducedMotion && !fallback);
+    if (!scene) loadScene();
   }
 
   export async function completeReveal() {
@@ -76,6 +80,7 @@
 
   onMount(() => {
     let destroyed = false;
+    let loading = false;
     let scrollFrame = 0;
     let loadTimer: ReturnType<typeof setTimeout>;
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -98,19 +103,31 @@
     };
     const queueUpdate = () => { if (!scrollFrame) scrollFrame = requestAnimationFrame(update); };
     const load = async () => {
-      if (destroyed || media.matches || scene) return;
+      if (destroyed || media.matches || scene || loading || collapsed) return;
+      loading = true;
       try {
-        // The chunk contains the font too: no third-party runtime asset requests.
+        // All scene and precomputed lettering assets are hosted locally.
         const { createOrbitalScene } = await import('./lib/orbitalScene');
-        if (destroyed || media.matches) return;
-        scene = createOrbitalScene(canvas);
+        if (destroyed || media.matches || collapsed) return;
+        const created = await createOrbitalScene(canvas);
+        if (destroyed || media.matches || collapsed) { created.dispose(); return; }
+        scene = created;
+        scene.setTheme($theme);
+        scene.setPaused(paused);
+        await scene.prepare();
+        if (destroyed) return;
         ready = true;
         update();
       } catch (error) {
+        if (destroyed) return;
+        scene?.dispose(); scene = undefined;
         fallback = true;
         console.warn('Orbital scene unavailable; using the static signature.', error);
+      } finally {
+        loading = false;
       }
     };
+    loadScene = () => { void load(); };
     const motionChange = () => {
       reducedMotion = media.matches;
       if (reducedMotion) scene?.setActive(false);
@@ -136,6 +153,7 @@
     update();
     return () => {
       destroyed = true;
+      loadScene = () => {};
       revision++;
       cancelAnimationFrame(settleFrame);
       clearTimeout(loadTimer); cancelAnimationFrame(scrollFrame);
@@ -164,6 +182,13 @@
     </div>
     <div class="signature" class:tracing={ready && !fallback && !reducedMotion} aria-hidden="true">billharris.dev</div>
     </div>
+    {#if ready && !fallback && !reducedMotion}
+      <div class="animation-controls" inert={progress > 0.4}>
+        <button on:click={() => paused = !paused} aria-pressed={paused}>
+          {paused ? 'Resume animation' : 'Pause animation'}
+        </button>
+      </div>
+    {/if}
   </div>
 </section>
 <div id="home" class="home" bind:this={home} tabindex="-1" aria-label="Projects"
@@ -190,6 +215,9 @@
   .explore { color: var(--text); text-decoration: none; display: inline-flex; gap: 0.8rem; align-items: center; pointer-events: auto; padding: 0.65rem 0; }
   .explore:hover { color: var(--accent); }
   .explore:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .animation-controls { position: absolute; bottom: 2rem; right: 1.25rem; opacity: var(--ui-opacity); pointer-events: auto; }
+  .animation-controls button { font: inherit; font-size: 0.75rem; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: 0.65rem 1rem; cursor: pointer; }
+  .animation-controls button:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
   .static-view .orbital { height: auto; }
   .static-view .stage { height: auto; position: relative; }
   .static-view .studio { position: relative; height: 100svh; opacity: 1; }

@@ -66,7 +66,7 @@
   });
 </script>
 
-<main class="portfolio" aria-label="Project portfolio">
+<section class="portfolio" aria-label="Project portfolio">
   <div class="workspace">
     <nav class="project-list" aria-label="Portfolio projects">
       {#each categories as category}
@@ -101,7 +101,7 @@
     <a href={`mailto:${authorEmail}`}>{authorEmail}</a>
     <a href={authorYouTube} target="_blank" rel="noopener noreferrer" aria-label="YouTube channel (new tab)">YouTube <span aria-hidden="true">↗</span></a>
   </footer>
-</main>
+</section>
 
 <style>
   .portfolio { min-height: 100svh; padding: 7rem clamp(1.25rem, 5vw, 5rem) 4rem; color: var(--text); background: var(--bg); }

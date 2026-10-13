@@ -2,11 +2,14 @@ import assert from 'node:assert/strict';
 import { readFile, readdir, stat } from 'node:fs/promises';
 import test from 'node:test';
 import sharp from 'sharp';
+import { createHash } from 'node:crypto';
 
 const manifest = JSON.parse(await readFile(new URL('../src/generated/images.json', import.meta.url), 'utf8'));
 const docs = new URL('../docs/', import.meta.url);
 const assets = new URL('../dist/assets/', import.meta.url);
 const emitted = await readdir(assets);
+const emittedHashes = new Set(await Promise.all(emitted.filter(name => /\.webp$/i.test(name)).map(async name =>
+  createHash('sha256').update(await readFile(new URL(name, assets))).digest('hex'))));
 
 test('every original WebP has correctly sized, non-upscaled responsive variants', async () => {
   const originals = (await readdir(docs)).filter(name => /\.webp$/i.test(name)).sort();
@@ -27,8 +30,8 @@ test('every original WebP has correctly sized, non-upscaled responsive variants'
       assert.ok(metadata.width <= original.width);
       assert.ok(metadata.height <= original.height);
       assert.ok(Math.abs(metadata.height - original.height * metadata.width / original.width) <= 1);
-      const basename = variant.path.split('/').pop().replace(/\.webp$/, '');
-      assert.ok(emitted.some(name => name.startsWith(`${basename}-`) && name.endsWith('.webp')),
+      // Vite may deduplicate identical assets under another source filename.
+      assert.ok(emittedHashes.has(createHash('sha256').update(buffer).digest('hex')),
         `Missing built asset: ${variant.path}`);
     }
   }
