@@ -5,6 +5,13 @@ export const authorName = 'Bill Harris';
 export const authorEmail = 'bill.harris.dev@gmail.com';
 export const siteDescription = 'Explore showcase projects and corporate work, including DAW-GNU, Frequency Frontier, Visualizers, and GreatCall.';
 
+const applicationCategories: Record<string, string> = {
+  'frequency-frontier': 'GameApplication',
+  'daw-gnu': 'MultimediaApplication',
+  netmap: 'SecurityApplication',
+  visualizers: 'EducationalApplication',
+};
+
 export function createStructuredData(projects: Project[]) {
   const personId = `${siteUrl}#author`;
   const websiteId = `${siteUrl}#website`;
@@ -74,6 +81,10 @@ export function createStructuredData(projects: Project[]) {
           url: project.href ?? projectId(project),
           subjectOf: { '@id': pageId },
           ...(software ? { author: { '@id': personId } } : { contributor: { '@id': personId } }),
+          ...(software ? {
+            applicationCategory: applicationCategories[project.id],
+            operatingSystem: ['Windows', 'Linux', 'MacOS', 'ChromeBook'],
+          } : {}),
           ...(images.length ? { image: images } : {}),
           ...(software && images.length ? { screenshot: images } : {}),
           ...(software && project.features ? { featureList: project.features } : {}),

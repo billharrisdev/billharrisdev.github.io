@@ -59,6 +59,28 @@ test('author identity and project credits match the shared project data', () => 
   });
 });
 
+test('all four software applications have categories and supported operating systems', () => {
+  const graph = JSON.parse(scripts[0][1])['@graph'];
+  const categories = {
+    'frequency-frontier': 'GameApplication',
+    'daw-gnu': 'MultimediaApplication',
+    netmap: 'SecurityApplication',
+    visualizers: 'EducationalApplication',
+  };
+  const applications = graph.filter(entity => ['SoftwareApplication', 'WebApplication'].includes(entity['@type']));
+  assert.equal(applications.length, 4);
+  for (const [id, category] of Object.entries(categories)) {
+    const application = applications.find(entity => entity['@id'] === `${siteUrl}#project-${id}`);
+    assert.ok(application, `Missing application: ${id}`);
+    assert.equal(application.applicationCategory, category);
+    assert.deepEqual(application.operatingSystem, ['Windows', 'Linux', 'MacOS', 'ChromeBook']);
+  }
+  for (const entity of graph.filter(entity => !applications.includes(entity))) {
+    assert.equal(entity.applicationCategory, undefined);
+    assert.equal(entity.operatingSystem, undefined);
+  }
+});
+
 test('structured screenshot URLs point to actual emitted assets', () => {
   const graph = JSON.parse(scripts[0][1])['@graph'];
   const images = graph.flatMap(entity => entity.image ?? []);
