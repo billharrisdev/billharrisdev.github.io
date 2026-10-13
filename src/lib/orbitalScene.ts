@@ -1,11 +1,53 @@
 import * as THREE from 'three';
-import letteringUrl from '../generated/orbital-lettering.bin?url';
-import { decodeLettering, evaluate } from './orbitalLettering';
-import { createArmSolver } from './orbitalKinematics';
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js';
+import fontData from './helvetiker_regular.typeface.json';
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
+
+type Harmonic = { frequency: number; re: number; im: number };
+type Stroke = { terms: Harmonic[]; points: THREE.Vector3[] };
+
+// A DFT of each closed letter contour. Signed frequencies preserve both
+// clockwise and counterclockwise details; magnitude order exposes epicycles.
+function transform(points: THREE.Vector2[]): Harmonic[] {
+  const n = points.length;
+  return Array.from({ length: n }, (_, k) => {
+    let re = 0, im = 0;
+    for (let j = 0; j < n; j++) {
+      const a = -2 * Math.PI * k * j / n;
+      re += points[j].x * Math.cos(a) - points[j].y * Math.sin(a);
+      im += points[j].x * Math.sin(a) + points[j].y * Math.cos(a);
+    }
+    return { frequency: k <= n / 2 ? k : k - n, re: re / n, im: im / n };
+  }).sort((a, b) => Math.hypot(b.re, b.im) - Math.hypot(a.re, a.im));
+}
+
+function evaluate(terms: Harmonic[], t: number): THREE.Vector3 {
+  const p = new THREE.Vector3();
+  for (const term of terms) {
+    const a = term.frequency * t * Math.PI * 2;
+    p.x += term.re * Math.cos(a) - term.im * Math.sin(a);
+    p.y += term.re * Math.sin(a) + term.im * Math.cos(a);
+  }
+  return p;
+}
+
+function lettering(): Stroke[] {
+  const font = new FontLoader().parse(fontData);
+  const shapes = font.generateShapes('billharris.dev', 1);
+  const bounds = new THREE.Box2();
+  for (const shape of shapes) for (const p of shape.getPoints(12)) bounds.expandByPoint(p);
+  const scale = 10 / (bounds.max.x - bounds.min.x);
+  const center = bounds.getCenter(new THREE.Vector2());
+  return shapes.flatMap(shape => [shape, ...shape.holes]).map(path => {
+    const samples = path.getSpacedPoints(96).slice(0, -1).map(p =>
+      new THREE.Vector2((p.x - center.x) * scale, (p.y - center.y) * scale + 0.75));
+    const terms = transform(samples);
+    return { terms, points: Array.from({ length: 193 }, (_, i) => evaluate(terms, i / 192)) };
+  });
+}
 
 function glowTexture() {
   const size = 64;
@@ -78,7 +120,9 @@ function makeArm(scene: THREE.Scene, x: number, color: number, glow: THREE.Textu
   addHalo(parent, 1.4);
   const penLight = new THREE.PointLight(color, 0, 4);
   parent.add(penLight);
-  const follow = createArmSolver(root, joints, axes, tip);
+  const origin = new THREE.Vector3(), end = new THREE.Vector3();
+  const a = new THREE.Vector3(), b = new THREE.Vector3(), axis = new THREE.Vector3(), cross = new THREE.Vector3();
+  const rotation = new THREE.Quaternion();
   return {
     tip,
     reset() {
@@ -95,17 +139,30 @@ function makeArm(scene: THREE.Scene, x: number, color: number, glow: THREE.Textu
       penLight.intensity = dark ? 0 : 15;
       metal.metalness = dark ? 0.8 : 0.45;
     },
-    follow,
+    follow(target: THREE.Vector3, time: number) {
+      // CCD positional IK; wrist roll is animated separately because it doesn't
+      // affect the centerline pen position. This is visual, not a robot controller.
+      joints[5].quaternion.setFromAxisAngle(axes[5], Math.sin(time * 0.7) * 0.6);
+      for (let iteration = 0; iteration < 8; iteration++) {
+        for (let i = joints.length - 1; i >= 0; i--) {
+          root.updateWorldMatrix(true, true);
+          joints[i].getWorldPosition(origin);
+          tip.getWorldPosition(end);
+          axis.copy(axes[i]).transformDirection(joints[i].matrixWorld);
+          a.copy(end).sub(origin); b.copy(target).sub(origin);
+          a.addScaledVector(axis, -a.dot(axis)); b.addScaledVector(axis, -b.dot(axis));
+          if (a.lengthSq() < 1e-8 || b.lengthSq() < 1e-8) continue;
+          a.normalize(); b.normalize();
+          const angle = Math.atan2(axis.dot(cross.crossVectors(a, b)), a.dot(b));
+          rotation.setFromAxisAngle(axes[i], THREE.MathUtils.clamp(angle, -0.22, 0.22));
+          joints[i].quaternion.multiply(rotation);
+        }
+      }
+    }
   };
 }
 
-export async function createOrbitalScene(canvas: HTMLCanvasElement) {
-  const response = await fetch(letteringUrl);
-  if (!response.ok) throw new Error(`Orbital lettering unavailable: ${response.status}`);
-  const strokes = decodeLettering(await response.arrayBuffer());
-  // Yield before WebGL setup instead of combining data decoding and renderer
-  // creation in one task. No animation duration or visual settings change.
-  await new Promise<void>(resolve => setTimeout(resolve, 0));
+export function createOrbitalScene(canvas: HTMLCanvasElement) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setClearColor(0x030611);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 600 ? 1.25 : 1.5));
@@ -132,6 +189,7 @@ export async function createOrbitalScene(canvas: HTMLCanvasElement) {
   scene.add(stars);
   let grid = new THREE.GridHelper(32, 32, 0x273760, 0x111b35);
   grid.position.y = -2.7; scene.add(grid);
+  const strokes = lettering();
   const palette = [0x63f5ff, 0xd78aff];
   const glow = glowTexture();
   const arms = [makeArm(scene, -5.5, palette[0], glow), makeArm(scene, 5.5, palette[1], glow)];
@@ -154,9 +212,6 @@ export async function createOrbitalScene(canvas: HTMLCanvasElement) {
   let elapsed = 0, last = 0, frame = 0, active = false, reveal = 0, disposed = false;
   let paused = false;
   let poseTime = NaN;
-  const targets = arms.map(() => new THREE.Vector3());
-  const centers = arms.map(() => new THREE.Vector3());
-  const parking = arms.map((_, index) => new THREE.Vector3(index === 0 ? -4 : 4, -1.2, 0.4));
   let currentTheme: 'light' | 'dark' | undefined;
   function setTheme(theme: 'light' | 'dark') {
     if (currentTheme === theme || disposed) return;
@@ -214,34 +269,29 @@ export async function createOrbitalScene(canvas: HTMLCanvasElement) {
       THREE.MathUtils.lerp(1.2, 0.75, flight), THREE.MathUtils.lerp(distance, -6, flight));
     camera.lookAt(0, THREE.MathUtils.lerp(-0.25, 0.75, flight), camera.position.z - distance);
     stars.rotation.z = elapsed * 0.003;
-    if (elapsed !== poseTime) groups.forEach((group, index) => {
+    if (!paused || Number.isNaN(poseTime)) groups.forEach((group, index) => {
       const position = progress * group.length;
       const current = Math.min(Math.floor(position), group.length - 1);
       const t = progress === 1 ? 1 : position - current;
-      group.forEach((_, j) => {
-        const geometry = lines[index][j].geometry;
-        const count = j < current ? 193 : j === current ? Math.max(2, Math.floor(t * 192) + 1) : 0;
-        if (geometry.drawRange.count !== count) geometry.setDrawRange(0, count);
-      });
+      group.forEach((_, j) => lines[index][j].geometry.setDrawRange(0, j < current ? 193 : j === current ? Math.max(2, Math.floor(t * 192) + 1) : 0));
       const stroke = group[current];
-      const target = evaluate(stroke.terms, t, targets[index]);
-      if (progress === 1) target.lerp(parking[index], Math.min((elapsed - 24) / 1.5, 1));
+      const target = evaluate(stroke.terms, t);
+      if (progress === 1) target.lerp(new THREE.Vector3(index === 0 ? -4 : 4, -1.2, 0.4), Math.min((elapsed - 24) / 1.5, 1));
       arms[index].follow(target, elapsed);
-      const center = centers[index];
+      const center = new THREE.Vector3();
       // The DC term is a translation, not an orbit.
-      const dc = stroke.dc;
+      const dc = stroke.terms.find(term => term.frequency === 0)!;
       center.set(dc.re, dc.im, 0.025);
-      const terms = stroke.orbits;
+      const terms = stroke.terms.filter(term => term.frequency !== 0);
       epicycles[index].forEach((circle, j) => {
         const term = terms[j];
         circle.visible = progress < 1;
-        if (!circle.visible) return;
         circle.position.copy(center);
-        circle.scale.setScalar(term.radius);
+        const radius = Math.hypot(term.re, term.im);
+        circle.scale.setScalar(radius);
         const angle = term.frequency * t * 2 * Math.PI;
-        const cos = Math.cos(angle), sin = Math.sin(angle);
-        center.x += term.re * cos - term.im * sin;
-        center.y += term.re * sin + term.im * cos;
+        center.x += term.re * Math.cos(angle) - term.im * Math.sin(angle);
+        center.y += term.re * Math.sin(angle) + term.im * Math.cos(angle);
       });
     });
     poseTime = elapsed;
@@ -255,10 +305,6 @@ export async function createOrbitalScene(canvas: HTMLCanvasElement) {
   document.addEventListener('visibilitychange', visibility);
   return {
     setTheme,
-    async prepare() {
-      await renderer.compileAsync(scene, camera);
-      if (!disposed) composer.render();
-    },
     setPaused(value: boolean) {
       paused = value;
       cancelAnimationFrame(frame); frame = 0; last = 0;

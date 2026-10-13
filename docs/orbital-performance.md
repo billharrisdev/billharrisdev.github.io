@@ -6,28 +6,18 @@ first project. Pause/resume freezes the animation clock and stops its continuous
 render loop; theme, resize, and reveal changes can still redraw the paused scene.
 Reduced-motion preferences continue to avoid downloading the scene entirely.
 
-## Fidelity-preserving changes
+## Animation rollback
 
-- `npm run lettering` precomputes the existing font contours, Fourier harmonics,
-  and trace points into `src/generated/orbital-lettering.bin`. It runs before
-  development/builds alongside responsive-image generation. The browser no
-  longer imports FontLoader or the font JSON, or runs the Fourier transform.
-- The binary stores little-endian float64 values without rounding. Tests compare
-  every harmonic and contour point with the original computation exactly.
-- `src/lib/orbitalKinematics.ts` updates only the robot arm's centerline and the
-  affected transform suffix during IK. The renderer updates decorative meshes
-  normally. The same eight iterations, joint ordering, and angle limits remain.
-  Tests compare poses with the previous solver and require fewer than one-third
-  as many matrix updates in the test rigs.
-- Per-frame vectors, harmonic selections, and orbit radii are reused. Duplicate
-  trigonometric calls and unchanged draw-range updates are avoided. Invisible
-  epicycles are not updated after tracing finishes.
-- Scene setup fetches the local precomputed data asynchronously, yields before
-  renderer creation, and uses Three.js `compileAsync` before revealing the canvas.
-  Its benefits depend on the browser's parallel shader compilation support.
-- Bloom settings, geometry, stars, antialiasing, pixel ratio, 24-second tracing,
-  camera motion, and robot wrist motion are unchanged. No frame-rate cap or
-  automatic quality reduction was introduced.
+The animation optimizations were rolled back after a reported PageSpeed
+regression. Runtime font parsing, Fourier calculations, the original robot-arm
+solver, and per-frame calculations are restored in `src/lib/orbitalScene.ts`.
+Scene construction is synchronous again after the existing lazy module import;
+there is no separate lettering download or shader-preparation wait.
+
+The lettering build script, binary dependency, optimized solver helpers, and
+optimization-specific tests were removed. Responsive-image generation and the
+accessibility features above remain. Rendering quality and animation timing are
+unchanged. Pause/resume only changes animation behavior when explicitly used.
 
 ## Verification
 
@@ -38,9 +28,5 @@ returning to the hero, and reduced motion.
 Compare PageSpeed/DevTools measurements under the same CPU throttling, viewport,
 and cache conditions. Animation duration is not Total Blocking Time: TBT counts
 the portion beyond 50ms of long main-thread tasks in the measured interval.
-The “Other” bucket does not identify a specific bottleneck by itself. These
-changes reduce known work, but do not establish a new PageSpeed score.
-
-An OffscreenCanvas worker is a possible next step if profiling still shows the
-scene dominating main-thread work. It was not added in this pass; moving rendering
-requires browser-support fallbacks and further visual/lifecycle testing.
+The “Other” bucket does not identify a specific bottleneck by itself. Restoring
+the previous animation implementation does not establish a new PageSpeed score.

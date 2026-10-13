@@ -16,7 +16,7 @@
   let ready = false;
   let fallback = false;
   let reducedMotion = false;
-  let scene: Awaited<ReturnType<typeof createOrbitalScene>> | undefined;
+  let scene: ReturnType<typeof createOrbitalScene> | undefined;
   let paused = false;
   let loadScene = () => {};
 
@@ -106,16 +106,12 @@
       if (destroyed || media.matches || scene || loading || collapsed) return;
       loading = true;
       try {
-        // All scene and precomputed lettering assets are hosted locally.
+        // The chunk contains the font too: no third-party runtime asset requests.
         const { createOrbitalScene } = await import('./lib/orbitalScene');
         if (destroyed || media.matches || collapsed) return;
-        const created = await createOrbitalScene(canvas);
-        if (destroyed || media.matches || collapsed) { created.dispose(); return; }
-        scene = created;
+        scene = createOrbitalScene(canvas);
         scene.setTheme($theme);
         scene.setPaused(paused);
-        await scene.prepare();
-        if (destroyed) return;
         ready = true;
         update();
       } catch (error) {
