@@ -84,9 +84,7 @@
     let destroyed = false;
     let loading = false;
     let scrollFrame = 0;
-    let loadTimer: ReturnType<typeof setTimeout>;
     let idleLoad: number | undefined;
-    let loadScheduled = false;
     const workerStartup = new AbortController();
     let useWorker = new URLSearchParams(window.location.search).get('orbital') !== 'main';
     const workerFailed = async (error: Error) => {
@@ -113,7 +111,7 @@
       onProgress(progress);
       scene?.setReveal(progress);
       scene?.setActive(!reducedMotion && !fallback && progress < 0.98 && rect.bottom > 0);
-      if (loadScheduled && !scene && rect.top < window.innerHeight && rect.bottom > 0) scheduleLoad();
+      if (!scene && rect.top < window.innerHeight && rect.bottom > 0) scheduleLoad();
       if (reducedMotion || fallback) {
         if (home.getBoundingClientRect().top <= 0) void completeReveal();
       } else if (progress >= 0.98) settleReveal();
@@ -180,20 +178,17 @@
         void load();
       }
     };
-    loadScene = () => { if (loadScheduled) scheduleLoad(); };
+    loadScene = scheduleLoad;
     const motionChange = () => {
       reducedMotion = media.matches;
       if (reducedMotion) scene?.setActive(false);
-      else if (!scene && loadScheduled) scheduleLoad();
+      else if (!scene) scheduleLoad();
       update();
     };
     reducedMotion = media.matches;
-    // Keep the static hero's initial render clear of the animation download/work.
-    // Idle scheduling postpones startup; it does not split synchronous scene work.
-    loadTimer = setTimeout(() => {
-      loadScheduled = true;
-      scheduleLoad();
-    }, 2000);
+    // Start at the first idle opportunity without a fixed startup delay.
+    // Worker rendering isolates scene work; the main-thread fallback still costs CPU.
+    scheduleLoad();
     media.addEventListener('change', motionChange);
     window.addEventListener('scroll', queueUpdate, { passive: true });
     window.addEventListener('resize', queueUpdate);
@@ -214,7 +209,7 @@
       handleContextLost = event => { event.preventDefault(); };
       revision++;
       cancelAnimationFrame(settleFrame);
-      clearTimeout(loadTimer); cancelAnimationFrame(scrollFrame);
+      cancelAnimationFrame(scrollFrame);
       if (idleLoad !== undefined) window.cancelIdleCallback(idleLoad);
       media.removeEventListener('change', motionChange);
       window.removeEventListener('scroll', queueUpdate);

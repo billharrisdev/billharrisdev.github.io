@@ -15,13 +15,15 @@ Scene construction remains synchronous after the lazy module import, but now
 runs in a rendering worker where supported. There is no separate lettering
 download or shader-preparation wait.
 
-The lazy scene import waits two seconds after mounting, then starts during browser
-idle time (with a two-second idle timeout). Browsers without idle callbacks start
-after the initial delay. The static signature remains visible until the scene is
+The lazy scene import is scheduled during browser idle time immediately after
+mounting (with a two-second idle timeout), without a fixed two-second wait.
+Browsers without idle callbacks start immediately. The static signature remains visible until the scene is
 ready. Offscreen or collapsed intros do not start the download; scrolling back
 into view can schedule it again. Reduced motion continues to skip loading.
-This reduces initial network/CPU competition but does not split synchronous scene
-construction or guarantee lower LCP or Total Blocking Time.
+Idle scheduling can reduce initial competition but does not split synchronous
+scene construction or guarantee lower LCP, Speed Index, or Total Blocking Time.
+Removing the fixed wait is an isolated startup-timing experiment now that scene
+work runs in a worker where supported; network and GPU competition remain.
 
 ## Worker rendering prototype
 
@@ -38,7 +40,7 @@ if that also fails, the static signature remains. Component teardown cancels
 pending startup and terminates its worker.
 
 Add `?orbital=main` to force the main-thread renderer for comparison. The default
-uses worker rendering when supported. Both paths retain the same startup delay
+uses worker rendering when supported. Both paths retain the same idle scheduling
 and rendering quality. Workers move work off the main thread; they do not remove
 GPU cost or guarantee a PageSpeed score. CPU throttling of worker threads may
 differ from main-thread throttling in DevTools, so compare responsiveness and
