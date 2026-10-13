@@ -68,8 +68,8 @@
             <h2 id={`menu-${category.toLowerCase()}`}>{category}</h2>
             <ul>
               {#each projects.filter(project => project.category === category) as project}
-                <li><button class:active={selectedId === project.id} aria-pressed={selectedId === project.id}
-                  aria-controls="project-gallery" on:click={() => chooseProject(project.id)}>{project.name}</button></li>
+                <li><button class:active={selectedId === project.id} aria-current={selectedId === project.id ? 'true' : undefined}
+                  aria-controls={`project-${project.id}`} on:click={() => chooseProject(project.id)}>{project.name}</button></li>
               {/each}
             </ul>
           </section>
