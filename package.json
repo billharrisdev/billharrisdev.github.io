@@ -10,6 +10,10 @@
     "prebuild": "npm run images",
     "build": "vite build",
     "test": "npm run build && node --test tests/*.test.mjs",
+    "cache:plan": "node scripts/cloudflare-cache.mjs plan",
+    "cache:configure": "node scripts/cloudflare-cache.mjs apply",
+    "cache:purge": "node scripts/cloudflare-cache.mjs purge",
+    "cache:verify": "node scripts/verify-cache.mjs",
     "preview": "vite preview --port 5173"
   },
   "devDependencies": {

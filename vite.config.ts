@@ -1,9 +1,29 @@
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type Plugin } from 'vite';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { createProjects } from './src/lib/projectData';
 import { createStructuredData, serializeStructuredData, siteUrl } from './src/lib/structuredData';
+
+function assetVersion(filename: string) {
+  return createHash('sha256').update(readFileSync(new URL(`./public/${filename}`, import.meta.url))).digest('hex').slice(0, 16);
+}
+
+function versionPublicAssets(): Plugin {
+  return {
+    name: 'version-public-assets',
+    transformIndexHtml: {
+      order: 'pre',
+      handler(html) {
+        for (const filename of ['favicon.svg', 'apple-touch-icon.png']) {
+          html = html.replace(`href="/${filename}"`, `href="/${filename}?v=${assetVersion(filename)}"`);
+        }
+        return html;
+      },
+    },
+  };
+}
 
 function structuredData(): Plugin {
   return {
@@ -41,7 +61,10 @@ function structuredData(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [svelte(), structuredData()],
+  plugins: [svelte(), versionPublicAssets(), structuredData()],
+  define: {
+    'import.meta.env.VITE_FAVICON_FRAMES_VERSION': JSON.stringify(assetVersion('favicon-frames.png')),
+  },
   base: '/',
   build: { assetsInlineLimit: 0 },
 });

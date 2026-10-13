@@ -22,7 +22,7 @@ export function animateFavicon() {
     stop();
     if (disposed || media.matches || document.hidden) return;
     if (!frames.length) {
-      if (!image.src) image.src = `${import.meta.env.BASE_URL}favicon-frames.png`;
+      if (!image.src) image.src = `${import.meta.env.BASE_URL}favicon-frames.png?v=${import.meta.env.VITE_FAVICON_FRAMES_VERSION}`;
       return;
     }
     icon!.type = 'image/png';
