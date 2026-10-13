@@ -54,14 +54,16 @@ def render(size, angle=0):
     return bytes(pixels)
 
 
-def png(size, pixels):
+def png(width, pixels, height=None):
+    if height is None:
+        height = width
     def chunk(kind, data):
         return (struct.pack('>I', len(data)) + kind + data
                 + struct.pack('>I', zlib.crc32(kind + data)))
-    rows = b''.join(b'\0' + pixels[y * size * 4:(y + 1) * size * 4]
-                    for y in range(size))
+    rows = b''.join(b'\0' + pixels[y * width * 4:(y + 1) * width * 4]
+                    for y in range(height))
     return (b'\x89PNG\r\n\x1a\n'
-            + chunk(b'IHDR', struct.pack('>IIBBBBB', size, size, 8, 6, 0, 0, 0))
+            + chunk(b'IHDR', struct.pack('>IIBBBBB', width, height, 8, 6, 0, 0, 0))
             + chunk(b'IDAT', zlib.compress(rows, 9)) + chunk(b'IEND', b''))
 
 
@@ -128,7 +130,13 @@ def main():
     (OUTPUT / 'favicon.png').write_bytes(png(32, render(32)))
     (OUTPUT / 'apple-touch-icon.png').write_bytes(png(180, render(180)))
     (OUTPUT / 'favicon-animated.gif').write_bytes(animated_gif())
-    print('Generated ICO, PNG, Apple touch icon, and animated GIF in public/.')
+    # Browsers such as Chrome and Edge show only a GIF favicon's first frame.
+    # Export the same orbit as a horizontal strip for explicit tab-icon updates.
+    frames = [render(32, frame * math.tau / 24) for frame in range(24)]
+    strip = b''.join(frame[y * 32 * 4:(y + 1) * 32 * 4]
+                     for y in range(32) for frame in frames)
+    (OUTPUT / 'favicon-frames.png').write_bytes(png(32 * len(frames), strip, 32))
+    print('Generated ICO, PNG, Apple touch icon, animated GIF, and favicon frame strip in public/.')
 
 
 if __name__ == '__main__':

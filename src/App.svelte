@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { animateFavicon } from './lib/favicon';
   import { theme, toggleTheme } from './stores/theme';
   import OrbitalReveal from './OrbitalReveal.svelte';
   import Portfolio from './Portfolio.svelte';
@@ -12,6 +14,7 @@
   let projectsMenu: HTMLDivElement;
   let projectsToggle: HTMLButtonElement;
   const categories = ['Showcase', 'Corporate'] as const;
+  onMount(animateFavicon);
   $: selectedProject = projects.find(project => project.id === selectedId)!;
 
   function dismissProjects(event: MouseEvent) {
