@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { projects } from './lib/projects';
-  import { authorName, authorEmail } from './lib/structuredData';
+  import { authorName, authorEmail, authorYouTube } from './lib/structuredData';
   import ProjectGallery from './ProjectGallery.svelte';
 
   const categories = ['Showcase', 'Corporate'] as const;
@@ -99,6 +99,7 @@
   <footer class="author-contact">
     <span>{authorName}</span>
     <a href={`mailto:${authorEmail}`}>{authorEmail}</a>
+    <a href={authorYouTube} target="_blank" rel="noopener noreferrer" aria-label="YouTube channel (new tab)">YouTube <span aria-hidden="true">↗</span></a>
   </footer>
 </main>
 

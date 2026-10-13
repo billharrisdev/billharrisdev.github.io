@@ -3,6 +3,7 @@ import type { Project } from './projectData';
 export const siteUrl = 'https://portfolio.lowkeymg.com/';
 export const authorName = 'Bill Harris';
 export const authorEmail = 'bill.harris.dev@gmail.com';
+export const authorYouTube = 'https://www.youtube.com/@BillHarrisDev';
 export const siteDescription = 'Explore showcase projects and corporate work, including DAW-GNU, Frequency Frontier, Visualizers, and GreatCall.';
 
 const applicationCategories: Record<string, string> = {
@@ -33,6 +34,7 @@ export function createStructuredData(projects: Project[]) {
         sameAs: [
           'https://github.com/billharrisdev',
           'http://www.linkedin.com/in/bill-harris-dev',
+          authorYouTube,
         ],
       },
       {

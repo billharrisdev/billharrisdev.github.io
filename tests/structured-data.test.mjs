@@ -40,6 +40,7 @@ test('author identity and project credits match the shared project data', () => 
   assert.deepEqual(author.sameAs, [
     'https://github.com/billharrisdev',
     'http://www.linkedin.com/in/bill-harris-dev',
+    'https://www.youtube.com/@BillHarrisDev',
   ]);
   const projects = createProjects({});
   const list = graph.find(entity => entity['@type'] === 'ItemList');

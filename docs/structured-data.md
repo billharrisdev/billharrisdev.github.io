@@ -12,11 +12,10 @@
 
 - Microdata
 - RDFa
-
 - No fake reviews, but quotes are ok.
 
-Aaron B. - ok'd quote "When I need a deliverable done right, I can always count on Bill."
-Matt R. - "This guy knows tech!"
+Aaron B. - "When I need a deliverable done right, I can always count on Bill."
+Matt R. - "This guy knows his tech!"
 Dave R. - I've worked with him for many years, known him most of my life. He'd make a great contribution to any modern team."
 
 Get quotes - Publish.
