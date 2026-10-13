@@ -1,11 +1,13 @@
 <script lang="ts">
   import { fly } from 'svelte/transition';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { projects } from './lib/projects';
   import biquadReference from '../docs/digital-biquad-filter.webp';
 
   const categories = ['Showcase', 'Corporate'] as const;
-  let selected = projects.find(project => project.id === 'daw-gnu')!;
+  export let selectedId = projects.find(project => project.category === 'Showcase')!.id;
+  $: selected = projects.find(project => project.id === selectedId)!;
+  $: if (selected) screenshotIndex = 0;
   let screenshotIndex = 0;
   let reducedMotion = true;
   let gallery: HTMLElement;
@@ -13,7 +15,7 @@
 
   function select(id: string) {
     if (selected.id === id) return;
-    selected = projects.find(project => project.id === id)!;
+    selectedId = id;
     screenshotIndex = 0;
   }
 
@@ -28,6 +30,18 @@
     }
   }
 
+  export async function openProject(id: string) {
+    select(id);
+    await tick();
+    const revealing = !!gallery.closest('[inert]');
+    gallery.scrollIntoView({ behavior: reducedMotion || revealing ? 'instant' : 'smooth', block: 'start' });
+    if (revealing) {
+      // Let the orbital reveal update and remove inert before moving focus.
+      await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+    }
+    gallery.focus({ preventScroll: true });
+  }
+
   onMount(() => {
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => reducedMotion = media.matches;
@@ -40,7 +54,6 @@
 <main class="portfolio" aria-label="Project portfolio">
   <div class="workspace">
     <nav class="project-list" aria-label="Portfolio projects">
-      <p class="index-label">Selected work <span aria-hidden="true">↗</span></p>
       {#each categories as category}
         <section aria-labelledby={`category-${category.toLowerCase()}`}>
           <h2 id={`category-${category.toLowerCase()}`}>{category}</h2>
@@ -49,7 +62,6 @@
               <li>
                 <button class="project-button" class:selected={selected.id === project.id}
                   aria-pressed={selected.id === project.id} aria-controls="project-gallery"
-                  on:mouseenter={() => select(project.id)} on:focus={() => select(project.id)}
                   on:click={() => open(project.id)}>
                   <span>{project.name}</span><span class="selection-arrow" aria-hidden="true">↗</span>
                 </button>
@@ -58,10 +70,9 @@
           </ul>
         </section>
       {/each}
-      <p class="hint">Hover, focus, or select a project to explore.</p>
     </nav>
 
-    <section class="gallery" id="project-gallery" bind:this={gallery} aria-label="Selected project gallery">
+    <section class="gallery" id="project-gallery" bind:this={gallery} tabindex="-1" aria-label="Selected project gallery">
       {#key selected.id}
         <article in:fly={{ x: reducedMotion ? 0 : 24, duration: reducedMotion ? 0 : 320 }}>
           <header class="project-heading">
@@ -74,6 +85,10 @@
             <figure>
               <div class="image-frame">
                 <img class="hero-image" src={screenshot.src} alt={screenshot.alt} loading="lazy" decoding="async" />
+                {#if selected.screenshots.length > 1}
+                  <button class="step previous" on:click={() => step(-1)} aria-label="Previous screenshot">←</button>
+                  <button class="step next" on:click={() => step(1)} aria-label="Next screenshot">→</button>
+                {/if}
                 <span class="image-count">{screenshotIndex + 1} / {selected.screenshots.length}</span>
               </div>
               <figcaption>
@@ -83,7 +98,6 @@
             </figure>
             {#if selected.screenshots.length > 1}
               <div class="gallery-controls">
-                <button class="step" on:click={() => step(-1)} aria-label="Previous screenshot">←</button>
                 <div class="thumbnails" aria-label="Screenshot selection">
                   {#each selected.screenshots as image, index}
                     <button class:current={index === screenshotIndex} aria-pressed={index === screenshotIndex}
@@ -93,7 +107,6 @@
                     </button>
                   {/each}
                 </div>
-                <button class="step" on:click={() => step(1)} aria-label="Next screenshot">→</button>
               </div>
             {/if}
           {:else}
@@ -140,8 +153,6 @@
   .portfolio { min-height: 100svh; padding: 7rem clamp(1.25rem, 5vw, 5rem) 4rem; color: var(--text); background: var(--bg); }
   .workspace { max-width: 1320px; margin: 0 auto; display: grid; grid-template-columns: minmax(220px, 0.85fr) minmax(0, 2fr); gap: clamp(2rem, 5vw, 5rem); align-items: start; }
   .project-list { position: sticky; top: 6rem; }
-  .index-label { display: flex; justify-content: space-between; align-items: center; margin: 0 0 2.5rem; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.2em; color: var(--accent); }
-  .index-label span { font-size: 1.2rem; }
   .project-list section + section { margin-top: 2.5rem; }
   .project-list h2 { margin: 0 0 0.75rem; font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.65; font-weight: 500; }
   .project-list ul { padding: 0; margin: 0; list-style: none; }
@@ -151,8 +162,8 @@
   .project-button:hover, .project-button.selected { color: var(--accent); background: color-mix(in oklab, var(--accent) 7%, var(--bg)); border-radius: 8px; padding-left: 1.15rem; }
   .selection-arrow { opacity: 0; transform: translate(-4px, 4px); transition: opacity 180ms, transform 180ms; }
   .selected .selection-arrow, .project-button:hover .selection-arrow { opacity: 1; transform: none; }
-  .hint { font-size: 0.7rem; line-height: 1.6; opacity: 0.55; margin-top: 2rem; }
   .gallery { min-width: 0; scroll-margin-top: 6rem; }
+  .gallery:focus { outline: none; }
   .meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.14em; color: var(--accent); }
   .badge { border: 1px solid var(--border); padding: 0.35rem 0.6rem; border-radius: 999px; color: var(--text); letter-spacing: 0.06em; }
   .project-heading h2 { margin: 1rem 0 0.5rem; font-size: clamp(1.8rem, 3.5vw, 3rem); letter-spacing: -0.045em; font-weight: 500; line-height: 1.15; }
@@ -165,7 +176,10 @@
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; text-underline-offset: 4px; }
   .gallery-controls { display: flex; gap: 0.65rem; align-items: center; margin: 0.4rem 0 1.75rem; }
-  .step { background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 50%; width: 2rem; height: 2rem; flex-shrink: 0; }
+  .step { position: absolute; top: 50%; transform: translateY(-50%); display: grid; place-items: center; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 50%; width: 2.75rem; height: 2.75rem; box-shadow: 0 2px 8px rgb(0 0 0 / 15%); }
+  .step.previous { left: 0.75rem; }
+  .step.next { right: 0.75rem; }
+  .step:hover { color: var(--accent); border-color: var(--accent); }
   .thumbnails { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.25rem; min-width: 0; flex: 1; }
   .thumbnails button { flex: 0 0 92px; min-width: 0; border: 1px solid var(--border); padding: 0.3rem; border-radius: 7px; color: var(--text); background: var(--surface); }
   .thumbnails button.current { border-color: var(--accent); background: color-mix(in oklab, var(--accent) 8%, var(--bg)); }
@@ -193,11 +207,9 @@
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
   @media (max-width: 760px) {
     .workspace { grid-template-columns: minmax(0, 1fr); gap: 2.5rem; }
-    .project-list { position: static; }
-    .index-label { margin-bottom: 1.5rem; }
+    .project-list { display: none; }
     .project-list section + section { margin-top: 1.5rem; }
     .project-button { padding: 0.75rem 0.9rem; }
-    .hint { margin: 1rem 0 0; }
     .image-frame { height: 300px; }
   }
   @media (prefers-reduced-motion: reduce) { .project-button, .selection-arrow { transition: none; } }

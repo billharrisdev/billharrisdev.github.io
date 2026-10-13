@@ -27,12 +27,6 @@ const entries: Omit<Project, 'screenshots'>[] = [
     href: 'https://billharrisdev.github.io/browsergame'
   },
   {
-    id: 'visualizers', name: 'Visualizers', category: 'Showcase',
-    subtitle: 'Make the invisible visible.',
-    description: 'Interactive visualizers for exploring algorithms. The search gallery illustrates linear search, binary search, A* pathfinding, and Dijkstra’s algorithm.',
-    prefixes: ['visualizers'], href: 'https://billharrisdev.github.io/visualizers'
-  },
-  {
     id: 'daw-gnu', name: 'DAW-GNU', category: 'Showcase', status: 'In development',
     subtitle: 'A recording studio. In a browser.', prefixes: ['DAW'],
     description: 'A browser-based digital audio workstation built in Rust and powered by WebAssembly. Capture and create audio and video, shape your sound, and mix microphone audio into an existing video sequence for recording and reaction-video workflows.',
@@ -47,6 +41,12 @@ const entries: Omit<Project, 'screenshots'>[] = [
     id: 'netmap', name: 'NetMap', category: 'Showcase', status: 'Screenshots only',
     subtitle: 'Find your network’s weak spots.', prefixes: ['NetMap'],
     description: 'NetMap is an open-ended network discovery and infosec tool. Want to know where your weak spots are? You’ve come to the right place. Built with Rust™.'
+  },
+  {
+    id: 'visualizers', name: 'Visualizers', category: 'Showcase',
+    subtitle: 'Make the invisible visible.',
+    description: 'Interactive visualizers for exploring algorithms. The search gallery illustrates linear search, binary search, A* pathfinding, and Dijkstra’s algorithm.',
+    prefixes: ['visualizers'], href: 'https://billharrisdev.github.io/visualizers'
   },
   {
     id: 'greatcall', name: 'GreatCall', category: 'Corporate', status: 'Corporate archive',

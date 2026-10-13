@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { theme } from './stores/theme';
   import type { createOrbitalScene } from './lib/orbitalScene';
 
@@ -7,6 +7,11 @@
 
   let section: HTMLElement;
   let canvas: HTMLCanvasElement;
+  let home: HTMLDivElement;
+  let collapsed = false;
+  let settling = false;
+  let settleFrame = 0;
+  let revision = 0;
   let progress = 0;
   let ready = false;
   let fallback = false;
@@ -15,13 +20,58 @@
 
   $: scene?.setTheme($theme);
 
-  export function reset() {
+  export async function reset() {
+    const current = ++revision;
+    cancelAnimationFrame(settleFrame);
+    settling = false;
+    collapsed = false;
     scene?.replay();
     progress = 0;
     onProgress(0);
     scene?.setReveal(0);
+    await tick();
+    if (current !== revision) return;
     window.scrollTo({ top: 0, behavior: 'instant' });
     scene?.setActive(!reducedMotion && !fallback);
+  }
+
+  export async function completeReveal() {
+    if (collapsed) return;
+    const current = ++revision;
+    cancelAnimationFrame(settleFrame);
+    settling = false;
+    // Preserve the visible portfolio position as the intro leaves document flow.
+    const offset = Math.max(0, -home.getBoundingClientRect().top);
+    const focusWasInIntro = section.contains(document.activeElement);
+    collapsed = true;
+    progress = 1;
+    onProgress(1);
+    scene?.setReveal(1);
+    scene?.setActive(false);
+    await tick();
+    if (current !== revision) return;
+    window.scrollTo({ top: offset, behavior: 'instant' });
+    if (focusWasInIntro) home.focus({ preventScroll: true });
+  }
+
+  function settleReveal() {
+    if (settling || collapsed) return;
+    const distance = home.getBoundingClientRect().top;
+    if (reducedMotion || distance <= 0) {
+      void completeReveal();
+      return;
+    }
+    settling = true;
+    const start = window.scrollY;
+    const started = performance.now();
+    const animate = (now: number) => {
+      const fraction = Math.min(1, (now - started) / 180);
+      const eased = 1 - Math.pow(1 - fraction, 3);
+      window.scrollTo({ top: start + distance * eased, behavior: 'instant' });
+      if (fraction < 1) settleFrame = requestAnimationFrame(animate);
+      else void completeReveal();
+    };
+    settleFrame = requestAnimationFrame(animate);
   }
 
   onMount(() => {
@@ -31,12 +81,20 @@
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => {
       scrollFrame = 0;
+      if (collapsed) {
+        scene?.setReveal(1);
+        scene?.setActive(false);
+        return;
+      }
       const rect = section.getBoundingClientRect();
       const travel = Math.max(1, section.offsetHeight - canvas.clientHeight);
       progress = Math.max(0, Math.min(1, -rect.top / travel));
       onProgress(progress);
       scene?.setReveal(progress);
       scene?.setActive(!reducedMotion && !fallback && progress < 0.98 && rect.bottom > 0);
+      if (reducedMotion || fallback) {
+        if (home.getBoundingClientRect().top <= 0) void completeReveal();
+      } else if (progress >= 0.98) settleReveal();
     };
     const queueUpdate = () => { if (!scrollFrame) scrollFrame = requestAnimationFrame(update); };
     const load = async () => {
@@ -67,24 +125,35 @@
     window.addEventListener('resize', queueUpdate);
     const contextLost = (event: Event) => {
       event.preventDefault(); fallback = true; scene?.setActive(false);
+      update();
     };
+    // Do not fight a user's next gesture while gently settling the reveal.
+    const interruptSettle = () => { if (settling) void completeReveal(); };
+    window.addEventListener('wheel', interruptSettle, { passive: true });
+    window.addEventListener('touchstart', interruptSettle, { passive: true });
+    window.addEventListener('keydown', interruptSettle);
     canvas.addEventListener('webglcontextlost', contextLost);
     update();
     return () => {
       destroyed = true;
+      revision++;
+      cancelAnimationFrame(settleFrame);
       clearTimeout(loadTimer); cancelAnimationFrame(scrollFrame);
       media.removeEventListener('change', motionChange);
       window.removeEventListener('scroll', queueUpdate);
       window.removeEventListener('resize', queueUpdate);
+      window.removeEventListener('wheel', interruptSettle);
+      window.removeEventListener('touchstart', interruptSettle);
+      window.removeEventListener('keydown', interruptSettle);
       canvas.removeEventListener('webglcontextlost', contextLost);
       scene?.dispose();
     };
   });
 </script>
 
-<div class="experience" class:static-view={reducedMotion || fallback}
+<div class="experience" class:static-view={reducedMotion || fallback} class:collapsed
   style={`--flight: ${progress}; --scene-opacity: ${1 - Math.max(0, Math.min(1, (progress - 0.62) / 0.34))}; --ui-opacity: ${1 - Math.min(1, progress / 0.4)}; --home-opacity: ${Math.max(0, Math.min(1, (progress - 0.58) / 0.34))};`}>
-<section id="top" class="orbital" bind:this={section}>
+<section id="top" class="orbital" bind:this={section} inert={collapsed}>
   <div class="stage">
     <div class="studio" aria-labelledby="orbital-title">
     <canvas bind:this={canvas} class:visible={ready && !fallback && !reducedMotion} aria-hidden="true"></canvas>
@@ -97,14 +166,14 @@
     </div>
   </div>
 </section>
-<div id="home" class="home" tabindex="-1" aria-label="Projects"
+<div id="home" class="home" bind:this={home} tabindex="-1" aria-label="Projects"
   inert={progress < 0.92 && !reducedMotion && !fallback}>
   <slot />
 </div>
 </div>
 
 <style>
-  .experience { --stage-height: max(100svh, 28rem); color: var(--text); background: var(--bg); }
+  .experience { --stage-height: max(100svh, 28rem); color: var(--text); background: var(--bg); overflow-anchor: none; }
   .orbital { height: calc(140svh + var(--stage-height)); position: relative; z-index: 1; pointer-events: none; }
   .stage { height: var(--stage-height); position: sticky; top: 0; overflow: hidden; isolation: isolate; }
   .home { position: relative; z-index: 0; margin-top: calc(-1 * var(--stage-height)); opacity: var(--home-opacity); transform: scale(calc(0.94 + var(--home-opacity) * 0.06)); transform-origin: center top; }
@@ -127,5 +196,7 @@
   .static-view .home { margin-top: 0; opacity: 1; transform: none; }
   .static-view .caption { opacity: 1; }
   .static-view .signature { transform: translate(-50%, -50%); transition: none; }
+  .collapsed .orbital { display: none; }
+  .collapsed .home { margin-top: 0; opacity: 1; transform: none; }
   @media (prefers-reduced-motion: reduce) { canvas { transition: none; } }
 </style>
