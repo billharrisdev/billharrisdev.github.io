@@ -66,5 +66,10 @@ export default defineConfig({
     'import.meta.env.VITE_FAVICON_FRAMES_VERSION': JSON.stringify(assetVersion('favicon-frames.png')),
   },
   base: '/',
-  build: { assetsInlineLimit: 0 },
+  build: {
+    // Baseline Widely Available snapshot: 2026-01-01 (Vite 8 equivalent).
+    // Vite 5 needs explicit versions rather than the Baseline shorthand.
+    target: ['chrome111', 'edge111', 'firefox114', 'safari16.4', 'ios16.4'],
+    assetsInlineLimit: 0,
+  },
 });
