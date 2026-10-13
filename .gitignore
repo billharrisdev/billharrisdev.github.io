@@ -1,4 +1,6 @@
 node_modules
+docs/responsive/
+src/generated/
 dist
 .dist
 .DS_Store

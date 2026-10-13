@@ -5,14 +5,18 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "predev": "npm run images",
+    "images": "node scripts/generate-responsive-images.mjs",
+    "prebuild": "npm run images",
     "build": "vite build",
-    "test": "npm run build && node --test tests/structured-data.test.mjs",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "preview": "vite preview --port 5173"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^3.1.1",
     "@types/node": "^22.20.5",
     "@types/three": "^0.186.0",
+    "sharp": "^0.35.5",
     "svelte": "^4.2.18",
     "typescript": "^5.5.4",
     "vite": "^5.4.1"

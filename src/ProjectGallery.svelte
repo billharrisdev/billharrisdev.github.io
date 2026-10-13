@@ -1,10 +1,14 @@
 <script lang="ts">
   import type { Project } from './lib/projects';
   import biquadReference from '../docs/digital-biquad-filter.webp';
+  import { getResponsiveImage, galleryImageSizes } from './lib/responsiveImages';
+
+  const responsiveBiquad = getResponsiveImage(biquadReference);
 
   export let project: Project;
   let screenshotIndex = 0;
   $: screenshot = project.screenshots[screenshotIndex];
+  $: responsiveScreenshot = getResponsiveImage(screenshot?.src);
   let gesture: { id: number; x: number; y: number } | undefined;
 
   function step(direction: number) {
@@ -42,7 +46,10 @@
     <figure>
       <div class="image-frame" class:swipeable={project.screenshots.length > 1}
         on:pointerdown={startSwipe} on:pointerup={endSwipe} on:pointercancel={cancelSwipe} on:lostpointercapture={cancelSwipe}>
-        <img class="hero-image" src={screenshot.src} alt={screenshot.alt} loading="lazy" decoding="async" draggable="false" />
+        <img class="hero-image" src={responsiveScreenshot?.src ?? screenshot.src}
+          srcset={responsiveScreenshot?.srcset} sizes={galleryImageSizes}
+          width={responsiveScreenshot?.width} height={responsiveScreenshot?.height}
+          alt={screenshot.alt} loading="lazy" decoding="async" draggable="false" />
         {#if project.screenshots.length > 1}
           <button class="step previous" on:click={() => step(-1)} aria-label="Previous screenshot">←</button>
           <button class="step next" on:click={() => step(1)} aria-label="Next screenshot">→</button>
@@ -58,9 +65,11 @@
       <div class="gallery-controls">
         <div class="thumbnails" aria-label="Screenshot selection">
           {#each project.screenshots as image, index}
+            {@const responsive = getResponsiveImage(image.src)}
             <button class:current={index === screenshotIndex} aria-pressed={index === screenshotIndex}
               aria-label={`Show ${image.caption}`} on:click={() => screenshotIndex = index}>
-              <img src={image.src} alt="" loading="lazy" decoding="async" />
+              <img src={responsive?.thumbnailSrc ?? image.src} srcset={responsive?.thumbnailSrcset} sizes="80px"
+                width={responsive?.width} height={responsive?.height} alt="" loading="lazy" decoding="async" />
               <span>{image.caption}</span>
             </button>
           {/each}
@@ -88,7 +97,9 @@
           <p>The audio chain implements WebGPU biquad filters as shaders for hardware-accelerated effects processing and highly chainable design for minimal latency.</p>
           <figure class="biquad-reference">
             <a class="reference-image" href="https://en.wikipedia.org/wiki/Digital_biquad_filter" target="_blank" rel="noopener noreferrer" aria-label="Read Digital biquad filter on Wikipedia (new tab)">
-              <img src={biquadReference} alt="Wikipedia excerpt explaining digital biquad filters, their transfer-function equations, coefficient normalization, and stability." loading="lazy" decoding="async" />
+              <img src={responsiveBiquad?.src ?? biquadReference} srcset={responsiveBiquad?.srcset} sizes={galleryImageSizes}
+                width={responsiveBiquad?.width} height={responsiveBiquad?.height}
+                alt="Wikipedia excerpt explaining digital biquad filters, their transfer-function equations, coefficient normalization, and stability." loading="lazy" decoding="async" />
             </a>
             <figcaption>
               <a href="https://en.wikipedia.org/wiki/Digital_biquad_filter" target="_blank" rel="noopener noreferrer">Digital biquad filter — Wikipedia contributors</a>

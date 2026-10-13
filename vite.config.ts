@@ -12,16 +12,18 @@ function structuredData(): Plugin {
       order: 'post',
       handler(_html, context) {
         const images: Record<string, string> = {};
+        const originals = readdirSync(fileURLToPath(new URL('./docs', import.meta.url)))
+          .filter(filename => /\.webp$/i.test(filename));
         if (context.bundle) {
           // Use final, hashed asset URLs rather than development /docs paths.
           for (const asset of Object.values(context.bundle)) {
-            if (asset.type === 'asset' && asset.name && /\.webp$/i.test(asset.name)) {
+            if (asset.type === 'asset' && asset.name && originals.includes(asset.name)) {
               images[`/docs/${asset.name}`] = `/${asset.fileName}`;
             }
           }
         } else {
-          for (const filename of readdirSync(fileURLToPath(new URL('./docs', import.meta.url)))) {
-            if (/\.webp$/i.test(filename)) images[`/docs/${filename}`] = `/docs/${filename}`;
+          for (const filename of originals) {
+            images[`/docs/${filename}`] = `/docs/${filename}`;
           }
         }
         return [
@@ -41,4 +43,5 @@ function structuredData(): Plugin {
 export default defineConfig({
   plugins: [svelte(), structuredData()],
   base: '/',
+  build: { assetsInlineLimit: 0 },
 });
