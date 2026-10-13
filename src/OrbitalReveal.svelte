@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount, tick } from 'svelte';
   import { theme } from './stores/theme';
-  import type { createOrbitalScene } from './lib/orbitalScene';
+  import type { OrbitalController } from './lib/orbitalProtocol';
 
   export let onProgress: (value: number) => void = () => {};
 
@@ -16,9 +16,11 @@
   let ready = false;
   let fallback = false;
   let reducedMotion = false;
-  let scene: ReturnType<typeof createOrbitalScene> | undefined;
+  let scene: OrbitalController | undefined;
+  let canvasRevision = 0;
   let paused = false;
   let loadScene = () => {};
+  let handleContextLost = (event: Event) => { event.preventDefault(); };
 
   $: scene?.setTheme($theme);
   $: scene?.setPaused(paused);
@@ -85,6 +87,18 @@
     let loadTimer: ReturnType<typeof setTimeout>;
     let idleLoad: number | undefined;
     let loadScheduled = false;
+    const workerStartup = new AbortController();
+    let useWorker = new URLSearchParams(window.location.search).get('orbital') !== 'main';
+    const workerFailed = async (error: Error) => {
+      if (destroyed) return;
+      console.warn('Orbital worker unavailable; retrying on the main thread.', error);
+      useWorker = false;
+      scene?.dispose(); scene = undefined; ready = false;
+      // A transferred canvas cannot acquire a main-thread rendering context.
+      canvasRevision++;
+      await tick();
+      if (!destroyed) void load();
+    };
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     const update = () => {
       scrollFrame = 0;
@@ -111,12 +125,37 @@
       if (rect.top >= window.innerHeight || rect.bottom <= 0) return;
       loading = true;
       try {
-        // The chunk contains the font too: no third-party runtime asset requests.
-        const { createOrbitalScene } = await import('./lib/orbitalScene');
-        if (destroyed || media.matches || collapsed) return;
-        const currentRect = section.getBoundingClientRect();
-        if (currentRect.top >= window.innerHeight || currentRect.bottom <= 0) return;
-        scene = createOrbitalScene(canvas);
+        let controller: OrbitalController | undefined;
+        if (useWorker) {
+          const { createOrbitalWorker, supportsOrbitalWorker } = await import('./lib/orbitalWorkerClient');
+          if (destroyed || media.matches || collapsed) return;
+          if (supportsOrbitalWorker()) {
+            try {
+              controller = await createOrbitalWorker(canvas, error => void workerFailed(error), workerStartup.signal);
+            } catch (error) {
+              if (destroyed) return;
+              console.warn('Orbital worker startup failed; using the main thread.', error);
+              useWorker = false;
+              canvasRevision++;
+              await tick();
+            }
+          }
+        }
+        if (!controller && !destroyed && !media.matches && !collapsed) {
+          // The fallback chunk contains the font too: no third-party asset requests.
+          const { createOrbitalScene } = await import('./lib/orbitalScene');
+          const currentRect = section.getBoundingClientRect();
+          if (!destroyed && !media.matches && !collapsed && currentRect.top < window.innerHeight && currentRect.bottom > 0) {
+            controller = createOrbitalScene(canvas);
+          }
+        }
+        if (!controller) return;
+        if (destroyed || media.matches || collapsed) {
+          controller.dispose();
+          if (!destroyed) canvasRevision++;
+          return;
+        }
+        scene = controller;
         scene.setTheme($theme);
         scene.setPaused(paused);
         ready = true;
@@ -158,7 +197,7 @@
     media.addEventListener('change', motionChange);
     window.addEventListener('scroll', queueUpdate, { passive: true });
     window.addEventListener('resize', queueUpdate);
-    const contextLost = (event: Event) => {
+    handleContextLost = event => {
       event.preventDefault(); fallback = true; scene?.setActive(false);
       update();
     };
@@ -167,11 +206,12 @@
     window.addEventListener('wheel', interruptSettle, { passive: true });
     window.addEventListener('touchstart', interruptSettle, { passive: true });
     window.addEventListener('keydown', interruptSettle);
-    canvas.addEventListener('webglcontextlost', contextLost);
     update();
     return () => {
       destroyed = true;
+      workerStartup.abort();
       loadScene = () => {};
+      handleContextLost = event => { event.preventDefault(); };
       revision++;
       cancelAnimationFrame(settleFrame);
       clearTimeout(loadTimer); cancelAnimationFrame(scrollFrame);
@@ -182,7 +222,6 @@
       window.removeEventListener('wheel', interruptSettle);
       window.removeEventListener('touchstart', interruptSettle);
       window.removeEventListener('keydown', interruptSettle);
-      canvas.removeEventListener('webglcontextlost', contextLost);
       scene?.dispose();
     };
   });
@@ -193,7 +232,10 @@
 <section id="top" class="orbital" bind:this={section} inert={collapsed}>
   <div class="stage">
     <div class="studio" aria-labelledby="orbital-title">
-    <canvas bind:this={canvas} class:visible={ready && !fallback && !reducedMotion} aria-hidden="true"></canvas>
+     {#key canvasRevision}
+       <canvas bind:this={canvas} class:visible={ready && !fallback && !reducedMotion} aria-hidden="true"
+          on:webglcontextlost={handleContextLost}></canvas>
+     {/key}
     <div class="vignette" aria-hidden="true"></div>
     <div class="caption" inert={progress > 0.4 && !reducedMotion && !fallback}>
       <span class="eyebrow">Beyond the ordinary</span>

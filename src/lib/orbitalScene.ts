@@ -162,10 +162,24 @@ function makeArm(scene: THREE.Scene, x: number, color: number, glow: THREE.Textu
   };
 }
 
-export function createOrbitalScene(canvas: HTMLCanvasElement) {
+export type OrbitalEnvironment = {
+  width: number;
+  height: number;
+  pixelRatio: number;
+  viewportWidth: number;
+  isHidden: () => boolean;
+  requestFrame: (callback: FrameRequestCallback) => number;
+  cancelFrame: (id: number) => void;
+};
+
+export function createOrbitalScene(canvas: HTMLCanvasElement | OffscreenCanvas, environment?: OrbitalEnvironment) {
+  const requestFrame = environment?.requestFrame ?? requestAnimationFrame;
+  const cancelFrame = environment?.cancelFrame ?? cancelAnimationFrame;
+  const isHidden = environment?.isHidden ?? (() => document.hidden);
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
   renderer.setClearColor(0x030611);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 600 ? 1.25 : 1.5));
+  renderer.setPixelRatio(Math.min(environment?.pixelRatio ?? window.devicePixelRatio,
+    (environment?.viewportWidth ?? window.innerWidth) < 600 ? 1.25 : 1.5));
   const scene = new THREE.Scene();
   scene.fog = new THREE.FogExp2(0x030611, 0.022);
   const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
@@ -247,17 +261,21 @@ export function createOrbitalScene(canvas: HTMLCanvasElement) {
     }));
     if (paused) start();
   }
-  function resize() {
-    const { width, height } = canvas.getBoundingClientRect();
+  function resize(width?: number, height?: number) {
+    if (width === undefined || height === undefined) {
+      const size = environment ?? (canvas as HTMLCanvasElement).getBoundingClientRect();
+      width = size.width; height = size.height;
+    }
     renderer.setSize(Math.max(width, 1), Math.max(height, 1), false);
     composer.setSize(Math.max(width, 1), Math.max(height, 1));
     camera.aspect = width / Math.max(height, 1);
     camera.updateProjectionMatrix();
     if (paused) start();
   }
-  const observer = new ResizeObserver(resize); observer.observe(canvas); resize();
+  const observer = environment ? undefined : new ResizeObserver(() => resize());
+  observer?.observe(canvas as HTMLCanvasElement); resize();
   function render(now: number) {
-    if (disposed || !active || document.hidden) { frame = 0; return; }
+    if (disposed || !active || isHidden()) { frame = 0; return; }
     const dt = last && !paused ? Math.min((now - last) / 1000, 0.5) : 0;
     last = now; elapsed += dt;
     const progress = Math.min(elapsed / 24, 1);
@@ -296,24 +314,26 @@ export function createOrbitalScene(canvas: HTMLCanvasElement) {
     });
     poseTime = elapsed;
     composer.render();
-    frame = paused ? 0 : requestAnimationFrame(render);
+    frame = paused ? 0 : requestFrame(render);
   }
-  function start() { if (active && !frame && !document.hidden) { last = 0; frame = requestAnimationFrame(render); } }
+  function start() { if (!disposed && active && !frame && !isHidden()) { last = 0; frame = requestFrame(render); } }
   function visibility() {
-    if (document.hidden) { cancelAnimationFrame(frame); frame = 0; } else start();
+    if (isHidden()) { cancelFrame(frame); frame = 0; } else start();
   }
-  document.addEventListener('visibilitychange', visibility);
+  if (!environment) document.addEventListener('visibilitychange', visibility);
   return {
     setTheme,
+    resize,
+    visibility,
     setPaused(value: boolean) {
       paused = value;
-      cancelAnimationFrame(frame); frame = 0; last = 0;
+      cancelFrame(frame); frame = 0; last = 0;
       start();
     },
     setReveal(value: number) { reveal = value; if (paused) start(); },
     setActive(value: boolean) {
       active = value;
-      if (active) start(); else { cancelAnimationFrame(frame); frame = 0; last = 0; }
+      if (active) start(); else { cancelFrame(frame); frame = 0; last = 0; }
     },
     replay() {
       elapsed = 0; last = 0; poseTime = NaN;
@@ -321,8 +341,8 @@ export function createOrbitalScene(canvas: HTMLCanvasElement) {
       lines.forEach(group => group.forEach(line => line.geometry.setDrawRange(0, 0)));
     },
     dispose() {
-      disposed = true; cancelAnimationFrame(frame); observer.disconnect();
-      document.removeEventListener('visibilitychange', visibility);
+      disposed = true; cancelFrame(frame); observer?.disconnect();
+      if (!environment) document.removeEventListener('visibilitychange', visibility);
       scene.traverse(object => {
         if (object instanceof THREE.Mesh || object instanceof THREE.Line || object instanceof THREE.Points || object instanceof THREE.Sprite) {
           if (!(object instanceof THREE.Sprite)) object.geometry.dispose();
