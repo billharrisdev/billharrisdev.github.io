@@ -30,6 +30,10 @@ export function createStructuredData(projects: Project[]) {
         name: authorName,
         url: siteUrl,
         email: authorEmail,
+        sameAs: [
+          'https://github.com/billharrisdev',
+          'https://www.linkedin.com/in/william-harris-343a9042',
+        ],
       },
       {
         '@type': 'WebSite',
